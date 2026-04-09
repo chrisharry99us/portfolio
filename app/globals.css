@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@source "../src/**/*.{tsx,ts,jsx,js}";
+@source "../app/**/*.{tsx,ts,jsx,js}";
 
 @theme {
   --color-navy: #0D2B5E;
