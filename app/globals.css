@@ -1,26 +1,54 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-navy: #0D2B5E;
+  --color-navy-light: #1A4A8A;
+  --color-navy-pale: #E8EDF5;
+  --color-gold: #C6A84B;
+  --color-gold-light: #FCF0D0;
+  --color-gold-dark: #8A6A10;
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-playfair);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: white;
+  color: #1a1a1a;
 }
+
+.bg-navy { background-color: #0D2B5E; }
+.bg-navy-light { background-color: #1A4A8A; }
+.bg-navy-pale { background-color: #E8EDF5; }
+.bg-gold { background-color: #C6A84B; }
+.bg-gold-light { background-color: #FCF0D0; }
+.bg-gold-dark { background-color: #8A6A10; }
+
+.text-white { color: #ffffff; }
+.text-navy { color: #0D2B5E; }
+.text-navy-light { color: #1A4A8A; }
+.text-gold { color: #C6A84B; }
+.text-gold-dark { color: #8A6A10; }
+
+.border-navy { border-color: #0D2B5E; }
+.border-navy-light { border-color: #1A4A8A; }
+.border-gold { border-color: #C6A84B; }
+
+.hover\:bg-gold-dark:hover { background-color: #8A6A10; }
+.hover\:text-gold:hover { color: #C6A84B; }
+.hover\:text-navy:hover { color: #0D2B5E; }
+.hover\:border-gold:hover { border-color: #C6A84B; }
+.hover\:bg-gold:hover { background-color: #C6A84B; }
+.hover\:text-white:hover { color: #ffffff; }
+.focus\:border-gold:focus { border-color: #C6A84B; }
+
+.font-serif { font-family: var(--font-playfair), Georgia, serif; }
