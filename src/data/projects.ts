@@ -6,7 +6,7 @@ export const projects = [
     outcome: "Full ML pipeline (regression, classification, clustering) across 110K+ records — deployed as interactive Streamlit dashboard",
     stack: ["Python", "scikit-learn", "Pandas", "Streamlit", "Plotly", "CDC BRFSS"],
     github: "https://github.com/chrisharry99us/brfss-statistical-learning",
-    demo: "https://brfss-statistical-learning.streamlit.app",
+    demo: "https://brfss-statistical-learning-chrisr.streamlit.app",
   },
   {
     type: "Bayesian Statistics",
