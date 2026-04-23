@@ -1,0 +1,2550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chris — Home</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Geist+Mono:wght@300;400&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #000;
+    overflow: hidden;
+    font-family: 'Geist Mono', monospace;
+    cursor: none;
+  }
+
+  #canvas-container {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    will-change: transform;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+
+  canvas { display: block; transform: translateZ(0); -webkit-transform: translateZ(0); }
+
+  /* Vignette */
+  #vignette {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.75) 100%);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  /* Tooltip label on hover */
+  #tooltip {
+    position: fixed;
+    bottom: 10%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+    text-align: center;
+  }
+
+  #tooltip.visible { opacity: 1; }
+
+  #tooltip-label {
+    font-family: 'Geist Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 300;
+    color: rgba(240, 236, 228, 0.75);
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+  }
+
+  #tooltip-line {
+    display: block;
+    margin: 0.6rem auto 0;
+    width: 1px;
+    height: 28px;
+    background: rgba(240, 236, 228, 0.25);
+  }
+
+  /* Hint text bottom left */
+  #hint {
+    position: fixed;
+    bottom: 5%;
+    left: 5%;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 2s ease;
+  }
+
+  #hint.visible { opacity: 1; }
+
+  #hint span {
+    font-family: 'Geist Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 300;
+    color: rgba(240, 236, 228, 0.35);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+  }
+
+  /* Fade overlay */
+  #fade {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    opacity: 1;
+    pointer-events: none;
+    z-index: 100;
+    transition: opacity 1.8s ease;
+  }
+
+  #fade.in  { opacity: 0 !important; pointer-events: none; }
+  #fade.out { opacity: 1 !important; pointer-events: all; }
+
+  /* Custom cursor */
+  #cursor {
+    position: fixed;
+    width: 5px;
+    height: 5px;
+    background: rgba(240, 236, 228, 0.8);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 999;
+    transform: translate(-50%, -50%);
+    transition: width 0.2s ease, height 0.2s ease, opacity 0.2s ease;
+  }
+
+  #cursor.hover {
+    width: 24px;
+    height: 24px;
+    background: transparent;
+    border: 1px solid rgba(240, 236, 228, 0.4);
+  }
+
+  /* Music player */
+  #music-player {
+    position: fixed;
+    bottom: 6%;
+    right: 3%;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(10, 8, 4, 0.75);
+    border: 0.5px solid rgba(240, 236, 228, 0.15);
+    border-radius: 40px;
+    padding: 8px 16px 8px 10px;
+    backdrop-filter: blur(6px);
+    cursor: pointer;
+    transition: border-color 0.3s ease, background 0.3s ease;
+  }
+
+  #music-player:hover {
+    border-color: rgba(240, 236, 228, 0.3);
+    background: rgba(18, 14, 8, 0.88);
+  }
+
+  #vinyl {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: conic-gradient(
+      #1a1208 0deg, #2a1e10 60deg, #1a1208 120deg,
+      #2a1e10 180deg, #1a1208 240deg, #2a1e10 300deg, #1a1208 360deg
+    );
+    position: relative;
+    transition: animation 0.3s;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  #vinyl::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px; height: 8px;
+    background: #d4924a;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.4);
+  }
+
+  #vinyl.spinning {
+    animation: spin 3s linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+
+  #player-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  #track-name {
+    font-family: 'Geist Mono', monospace;
+    font-size: 0.55rem;
+    font-weight: 400;
+    color: rgba(240, 236, 228, 0.8);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  #player-status {
+    font-family: 'Geist Mono', monospace;
+    font-size: 0.48rem;
+    color: rgba(240, 236, 228, 0.35);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  #mute-btn {
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+    flex-shrink: 0;
+  }
+  #mute-btn:hover { opacity: 1; }
+
+  #music-player.muted #vinyl { animation-play-state: paused; }
+  #music-player.muted #track-name { opacity: 0.4; }
+
+  /* Full screen overlays — portfolio & blog */
+  .fs-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0);
+    pointer-events: none;
+    transition: background 0.4s ease;
+  }
+  .fs-overlay.active {
+    background: rgba(0,0,0,0.75);
+    pointer-events: all;
+  }
+
+  .fs-card {
+    width: min(96vw, 1100px);
+    height: 92vh;
+    background: #0d0b08;
+    border: 0.5px solid rgba(240,236,228,0.12);
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    transform: scale(0.85) translateY(40px);
+    opacity: 0;
+    transition: transform 0.5s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.4s ease;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .fs-overlay.active .fs-card {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+
+  .fs-header {
+    padding: 24px 32px 20px;
+    border-bottom: 0.5px solid rgba(240,236,228,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .fs-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.9rem;
+    font-weight: 300;
+    color: rgba(240,236,228,0.9);
+    letter-spacing: 0.08em;
+  }
+
+  .fs-subtitle {
+    font-family: 'Geist Mono', monospace;
+    font-size: 0.78rem;
+    color: #d4924a;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  .fs-close {
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; opacity: 0.4;
+    transition: opacity 0.2s;
+    border: 0.5px solid rgba(240,236,228,0.15);
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .fs-close:hover { opacity: 1; }
+
+  .fs-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px 32px 32px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(212,146,74,0.3) transparent;
+  }
+  .fs-body::-webkit-scrollbar { width: 4px; }
+  .fs-body::-webkit-scrollbar-track { background: transparent; }
+  .fs-body::-webkit-scrollbar-thumb { background: rgba(212,146,74,0.3); border-radius: 2px; }
+
+  /* Portfolio styles */
+  .section-label {
+    font-family: 'Geist Mono', monospace;
+    font-size: 0.78rem;
+    color: #d4924a;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    margin-top: 28px;
+  }
+  .section-label:first-child { margin-top: 0; }
+
+  .about-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.45rem;
+    font-weight: 300;
+    color: rgba(240,236,228,0.7);
+    line-height: 1.8;
+    margin-bottom: 12px;
+  }
+
+  .skills-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .skill-group {
+    background: rgba(255,255,255,0.03);
+    border: 0.5px solid rgba(240,236,228,0.08);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+
+  .skill-group-title {
+    font-family: 'Geist Mono', monospace;
+    font-size: 0.75rem;
+    color: #d4924a;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .skill-tag {
+    display: inline-block;
+    font-family: 'Geist Mono', monospace;
+    font-size: 0.72rem;
+    color: rgba(240,236,228,0.5);
+    background: rgba(255,255,255,0.04);
+    border: 0.5px solid rgba(240,236,228,0.1);
+    border-radius: 4px;
+    padding: 4px 9px;
+    margin: 3px 3px 3px 0;
+  }
+
+  .projects-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+
+  .project-card {
+    background: rgba(255,255,255,0.03);
+    border: 0.5px solid rgba(240,236,228,0.08);
+    border-radius: 12px;
+    padding: 18px 20px;
+    transition: border-color 0.2s;
+  }
+  .project-card:hover { border-color: rgba(212,146,74,0.3); }
+
+  .project-type {
+    font-family: 'Geist Mono', monospace;
+    font-size: 0.7rem;
+    color: #d4924a;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .project-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.4rem;
+    font-weight: 400;
+    color: rgba(240,236,228,0.9);
+    margin-bottom: 8px;
+  }
+
+  .project-desc {
+    font-family: 'Geist Mono', monospace;
+    font-size: 0.72rem;
+    color: rgba(240,236,228,0.4);
+    line-height: 1.7;
+    margin-bottom: 12px;
+  }
+
+  .project-links {
+    display: flex;
+    gap: 10px;
+  }
+
+  .project-link {
+    font-family: 'Geist Mono', monospace;
+    font-size: 0.7rem;
+    color: rgba(240,236,228,0.35);
+    text-decoration: none;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    border: 0.5px solid rgba(240,236,228,0.12);
+    border-radius: 4px;
+    padding: 5px 12px;
+    transition: all 0.2s;
+  }
+  .project-link:hover {
+    color: rgba(240,236,228,0.8);
+    border-color: rgba(240,236,228,0.3);
+  }
+
+  @keyframes demoBlink {
+    0%, 100% { border-color: rgba(255,220,0,0.9); box-shadow: 0 0 6px rgba(255,220,0,0.6); }
+    50%       { border-color: rgba(255,220,0,0.15); box-shadow: 0 0 2px rgba(255,220,0,0.1); }
+  }
+
+  .demo-link {
+    color: rgba(240,236,228,0.7) !important;
+    border-color: rgba(255,220,0,0.9) !important;
+    animation: demoBlink 1.4s ease-in-out infinite;
+  }
+  .demo-link:hover {
+    color: #fff !important;
+    border-color: #ffdc00 !important;
+    box-shadow: 0 0 10px rgba(255,220,0,0.5);
+    animation: none;
+  }
+
+  /* Blog styles */
+  .blog-post {
+    border-bottom: 0.5px solid rgba(240,236,228,0.07);
+    padding: 26px 0;
+  }
+  .blog-post:first-child { padding-top: 0; }
+  .blog-post:last-child { border-bottom: none; }
+
+  .blog-date {
+    font-family: 'Geist Mono', monospace;
+    font-size: 0.72rem;
+    color: rgba(240,236,228,0.25);
+    letter-spacing: 0.2em;
+    margin-bottom: 10px;
+  }
+
+  .blog-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.8rem;
+    font-weight: 400;
+    color: rgba(240,236,228,0.88);
+    margin-bottom: 12px;
+    line-height: 1.3;
+  }
+
+  .blog-preview {
+    font-family: 'Geist Mono', monospace;
+    font-size: 0.75rem;
+    color: rgba(240,236,228,0.38);
+    line-height: 1.9;
+    margin-bottom: 14px;
+  }
+
+  .blog-read {
+    font-family: 'Geist Mono', monospace;
+    font-size: 0.72rem;
+    color: #d4924a;
+    text-decoration: none;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+  }
+  .blog-read:hover { opacity: 1; }
+
+  /* Contact card overlay */
+  #card-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0);
+    pointer-events: none;
+    transition: background 0.5s ease;
+  }
+  #card-overlay.active { background: rgba(0,0,0,0.65); pointer-events: all; }
+
+  #card-scene {
+    perspective: 1200px;
+    width: 560px;
+    height: 320px;
+    transform: scale(0) translateY(60px);
+    transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  #card-overlay.active #card-scene { transform: scale(1) translateY(0); }
+
+  #card-inner {
+    width: 100%; height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  #card-inner.flipped { transform: rotateY(180deg); }
+
+  .card-face {
+    position: absolute; inset: 0;
+    backface-visibility: hidden;
+    border-radius: 16px; overflow: hidden;
+  }
+
+  #card-front {
+    background: #0d0d0d;
+    border: 0.5px solid rgba(240,236,228,0.15);
+    display: flex; align-items: center; justify-content: center;
+  }
+  #card-front span {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2.2rem; font-weight: 300;
+    color: rgba(240,236,228,0.5);
+    letter-spacing: 0.35em; text-transform: uppercase;
+  }
+
+  #card-back {
+    background: #0f0d0a;
+    border: 0.5px solid rgba(240,236,228,0.12);
+    transform: rotateY(180deg);
+    display: flex; align-items: center;
+    padding: 36px 40px; gap: 32px;
+  }
+
+  #card-photo {
+    width: 110px; height: 110px; border-radius: 50%;
+    background: #1a1208;
+    border: 2px solid rgba(212,146,74,0.5);
+    flex-shrink: 0; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2.2rem; font-weight: 300; color: #d4924a;
+  }
+  #card-photo img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+
+  #card-details { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+
+  #card-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.7rem; font-weight: 400;
+    color: rgba(240,236,228,0.95); letter-spacing: 0.05em;
+  }
+  #card-title {
+    font-family: 'Geist Mono', monospace;
+    font-size: 0.8rem; color: #d4924a;
+    letter-spacing: 0.22em; text-transform: uppercase; margin-bottom: 8px;
+  }
+  .card-link {
+    display: flex; align-items: center; gap: 10px;
+    text-decoration: none;
+    font-family: 'Geist Mono', monospace;
+    font-size: 0.8rem; color: rgba(240,236,228,0.4);
+    letter-spacing: 0.06em; transition: color 0.2s;
+  }
+  .card-link:hover { color: rgba(240,236,228,0.85); }
+  .card-link svg { flex-shrink: 0; }
+
+  #card-close {
+    position: absolute; top: 10px; right: 12px;
+    width: 22px; height: 22px; cursor: pointer;
+    opacity: 0; transition: opacity 0.3s; display: flex;
+    align-items: center; justify-content: center;
+  }
+  #card-inner.flipped #card-close { opacity: 0.4; }
+  #card-close:hover { opacity: 0.9 !important; }
+
+  /* Rain overlay */
+  #rain-overlay {
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      180deg,
+      transparent,
+      transparent 98px,
+      rgba(100,140,180,0.015) 100px
+    );
+    pointer-events: none;
+    z-index: 3;
+    animation: rainShift 0.8s linear infinite;
+  }
+
+  @keyframes rainShift {
+    from { background-position: 0 0; }
+    to   { background-position: 0 100px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="canvas-container"></div>
+<div id="vignette"></div>
+<div id="card-overlay" onclick="handleCardOverlayClick(event)">
+  <div id="card-scene">
+    <div id="card-inner">
+      <!-- Front -->
+      <div class="card-face" id="card-front">
+        <span>Chris Rodrigues</span>
+      </div>
+      <!-- Back -->
+      <div class="card-face" id="card-back">
+        <div id="card-photo">
+          <!-- Replace src with your photo URL -->
+          <span>CR</span>
+        </div>
+        <div id="card-details">
+          <div id="card-name">Chris Rodrigues</div>
+          <div id="card-title">Software / AI Engineer</div>
+          <a class="card-link" href="mailto:chrisharry99us@hotmail.com" target="_blank">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="2" stroke="rgba(240,236,228,0.5)" stroke-width="1.2"/><path d="M1 5l7 5 7-5" stroke="rgba(240,236,228,0.5)" stroke-width="1.2" stroke-linecap="round"/></svg>
+            chrisharry99us@hotmail.com
+          </a>
+          <a class="card-link" href="https://github.com/chrisharry99us" target="_blank">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="rgba(240,236,228,0.5)"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+            github.com/chrisharry99us
+          </a>
+          <a class="card-link" href="https://www.linkedin.com/in/chris-harry-rodrigues/" target="_blank">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="rgba(240,236,228,0.5)"><path d="M0 1.146C0 .514.527 0 1.175 0h13.65C15.473 0 16 .513 16 1.146v13.708c0 .633-.527 1.146-1.175 1.146H1.175C.527 16 0 15.487 0 14.854V1.146zm4.943 12.248V6.169H2.542v7.225h2.401zm-1.2-8.212c.837 0 1.358-.554 1.358-1.248-.015-.709-.52-1.248-1.342-1.248-.822 0-1.359.54-1.359 1.248 0 .694.521 1.248 1.327 1.248h.016zm4.908 8.212V9.359c0-.216.016-.432.08-.586.173-.431.568-.878 1.232-.878.869 0 1.216.662 1.216 1.634v3.865h2.401V9.25c0-2.22-1.184-3.252-2.764-3.252-1.274 0-1.845.7-2.165 1.193v.025h-.016a5.54 5.54 0 0 1 .016-.025V6.169h-2.4c.03.678 0 7.225 0 7.225h2.4z"/></svg>
+            linkedin.com/in/chris-harry-rodrigues
+          </a>
+        </div>
+        <div id="card-close" onclick="closeCard()">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><line x1="1" y1="1" x2="13" y2="13" stroke="rgba(240,236,228,0.8)" stroke-width="1.5" stroke-linecap="round"/><line x1="13" y1="1" x2="1" y2="13" stroke="rgba(240,236,228,0.8)" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Portfolio Overlay -->
+<div class="fs-overlay" id="portfolio-overlay" onclick="handleFsClick(event,'portfolio-overlay')">
+  <div class="fs-card">
+    <div class="fs-header">
+      <div>
+        <div class="fs-title">Chris Rodrigues</div>
+        <div class="fs-subtitle">Software Engineer · Data Scientist · Business Tech</div>
+      </div>
+      <div class="fs-close" onclick="closeOverlay('portfolio-overlay')">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><line x1="1" y1="1" x2="11" y2="11" stroke="rgba(240,236,228,0.8)" stroke-width="1.5" stroke-linecap="round"/><line x1="11" y1="1" x2="1" y2="11" stroke="rgba(240,236,228,0.8)" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </div>
+    </div>
+    <div class="fs-body">
+
+      <div class="section-label">About</div>
+      <p class="about-text">I started my career as a frontend developer — building user interfaces, learning how design translates into code, and developing a strong foundation in how software is experienced from the user's perspective.</p>
+      <p class="about-text">From there I pivoted fully into software engineering, spending several years in backend and full-stack roles building production systems — microservices, REST APIs, Kubernetes deployments — and developing a deep understanding of how technology works at scale.</p>
+      <p class="about-text">I've since moved into data analytics and machine learning in business settings, applying both engineering and analytical thinking to real-world problems. I now work at the intersection of data science, AI, and business intelligence — building systems that turn complex data into decisions.</p>
+
+      <div class="section-label">Skills & Technologies</div>
+      <div class="skills-grid" style="grid-template-columns: repeat(2, 1fr);">
+        <div class="skill-group">
+          <div class="skill-group-title">AI & Agents</div>
+          <span class="skill-tag">LangChain</span>
+          <span class="skill-tag">LangGraph</span>
+          <span class="skill-tag">CrewAI</span>
+          <span class="skill-tag">AutoGen</span>
+          <span class="skill-tag">BeeAI</span>
+          <span class="skill-tag">MCP</span>
+          <span class="skill-tag">LlamaIndex</span>
+          <span class="skill-tag">Hugging Face</span>
+        </div>
+        <div class="skill-group">
+          <div class="skill-group-title">RAG & Vector DBs</div>
+          <span class="skill-tag">RAG Pipelines</span>
+          <span class="skill-tag">Chroma DB</span>
+          <span class="skill-tag">FAISS</span>
+          <span class="skill-tag">Pinecone</span>
+          <span class="skill-tag">Embedding Models</span>
+          <span class="skill-tag">Agentic AI</span>
+        </div>
+        <div class="skill-group">
+          <div class="skill-group-title">Data Science & ML</div>
+          <span class="skill-tag">Python</span>
+          <span class="skill-tag">R</span>
+          <span class="skill-tag">scikit-learn</span>
+          <span class="skill-tag">PyTorch</span>
+          <span class="skill-tag">Bayesian Inference</span>
+          <span class="skill-tag">SARIMA</span>
+          <span class="skill-tag">MCMC / Gibbs</span>
+          <span class="skill-tag">Deep Learning</span>
+        </div>
+        <div class="skill-group">
+          <div class="skill-group-title">Analytics & Visualization</div>
+          <span class="skill-tag">Pandas</span>
+          <span class="skill-tag">NumPy</span>
+          <span class="skill-tag">Streamlit</span>
+          <span class="skill-tag">Plotly</span>
+          <span class="skill-tag">Tableau</span>
+          <span class="skill-tag">Statistical Modelling</span>
+          <span class="skill-tag">Forecasting</span>
+          <span class="skill-tag">EDA</span>
+        </div>
+        <div class="skill-group">
+          <div class="skill-group-title">Engineering</div>
+          <span class="skill-tag">Java / J2EE</span>
+          <span class="skill-tag">REST APIs</span>
+          <span class="skill-tag">Kubernetes</span>
+          <span class="skill-tag">Docker</span>
+          <span class="skill-tag">Angular</span>
+          <span class="skill-tag">TypeScript</span>
+          <span class="skill-tag">Git</span>
+          <span class="skill-tag">Splunk</span>
+        </div>
+        <div class="skill-group">
+          <div class="skill-group-title">Databases</div>
+          <span class="skill-tag">PostgreSQL</span>
+          <span class="skill-tag">Oracle</span>
+          <span class="skill-tag">MongoDB</span>
+          <span class="skill-tag">SQL Analytics</span>
+          <span class="skill-tag">Relational DB Design</span>
+        </div>
+      </div>
+
+      <div class="section-label">Projects</div>
+      <div class="projects-grid">
+
+        <div class="project-card">
+          <div class="project-type">Time Series · Forecasting</div>
+          <div class="project-title">Time Series Analysis — SARIMA</div>
+          <div class="project-desc">Forecasting the future consumption of UK natural gas using decades of historic quarterly data — capturing seasonal demand cycles driven by winter heating peaks and long-run energy trends.<br><br>↗ Fitted SARIMA(2,0,3)(1,1,0)[4] with full ACF/PACF diagnostics and live forecast intervals.</div>
+          <div class="project-tags" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;">
+            <span class="skill-tag">Python</span><span class="skill-tag">R</span><span class="skill-tag">statsmodels</span><span class="skill-tag">SARIMA</span><span class="skill-tag">Plotly</span>
+          </div>
+          <div class="project-links">
+            <a class="project-link" href="https://github.com/chrisharry99us/time-series-analysis" target="_blank">GitHub</a>
+            <a class="project-link demo-link" href="https://chris-timeseries-mds.streamlit.app" target="_blank">Live Demo</a>
+          </div>
+        </div>
+
+        <div class="project-card">
+          <div class="project-type">ML · Statistical Learning</div>
+          <div class="project-title">BRFSS Statistical Learning Dashboard</div>
+          <div class="project-desc">Using the Behavioral Risk Factor Surveillance System — the CDC's nationwide telephone survey of over 400,000 Americans — to surface meaningful insights about population health from dietary habits, physical activity, and lifestyle behaviours.<br><br>↗ Full ML pipeline (regression, classification, clustering) across 110K+ records — deployed as interactive Streamlit dashboard.</div>
+          <div class="project-tags" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;">
+            <span class="skill-tag">Python</span><span class="skill-tag">scikit-learn</span><span class="skill-tag">Pandas</span><span class="skill-tag">Streamlit</span><span class="skill-tag">Plotly</span>
+          </div>
+          <div class="project-links">
+            <a class="project-link" href="https://github.com/chrisharry99us/brfss-statistical-learning" target="_blank">GitHub</a>
+            <a class="project-link demo-link" href="https://brfss-statistical-learning-chrisr.streamlit.app/" target="_blank">Live Demo</a>
+          </div>
+        </div>
+
+        <div class="project-card">
+          <div class="project-type">AI · Finance</div>
+          <div class="project-title">EconPulse <span style="font-size:0.68rem;color:#d4924a;letter-spacing:0.2em;"> · IN DEVELOPMENT</span></div>
+          <div class="project-desc">AI-powered economic intelligence platform for journalists and analysts. Monitors major US economic reports, generates structured briefings, supports historical Q&A, and delivers alerts via Slack and email.</div>
+          <div class="project-tags" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;">
+            <span class="skill-tag">LangChain</span><span class="skill-tag">RAG</span><span class="skill-tag">Agents</span><span class="skill-tag">Python</span><span class="skill-tag">Vector DB</span>
+          </div>
+          <div class="project-links">
+            <a class="project-link" href="https://github.com/chrisharry99us" target="_blank">GitHub</a>
+          </div>
+        </div>
+
+        <div class="project-card">
+          <div class="project-type">Bayesian Statistics</div>
+          <div class="project-title">Bayesian Hierarchical Modelling</div>
+          <div class="project-desc">Standard polling averages mask group-level variation in public opinion — separate and pooled models both fail in opposite ways.<br><br>↗ Custom Gibbs sampler from scratch revealing posterior shrinkage across 5 demographic groups from 1,603 survey respondents.</div>
+          <div class="project-tags" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;">
+            <span class="skill-tag">Python</span><span class="skill-tag">R</span><span class="skill-tag">NumPy</span><span class="skill-tag">MCMC</span><span class="skill-tag">Streamlit</span>
+          </div>
+          <div class="project-links">
+            <a class="project-link" href="https://github.com/chrisharry99us/bayesian-hierarchical-modeling" target="_blank">GitHub</a>
+            <a class="project-link demo-link" href="https://bayesian-hierarchical-modeling.streamlit.app" target="_blank">Live Demo</a>
+          </div>
+        </div>
+
+        <div class="project-card">
+          <div class="project-type">Engineering · Creative Dev</div>
+          <div class="project-title">This Portfolio</div>
+          <div class="project-desc">An immersive 3D portfolio experience built entirely in Three.js — cinematic rainy night intro, interactive living room, animated fire and rain, contact card flip, scrollable overlays, and live jazz radio. No frameworks, no build tools.</div>
+          <div class="project-tags" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;">
+            <span class="skill-tag">Three.js</span><span class="skill-tag">JavaScript</span><span class="skill-tag">HTML/CSS</span><span class="skill-tag">Canvas API</span><span class="skill-tag">WebGL</span>
+          </div>
+          <div class="project-links">
+            <a class="project-link" href="https://github.com/chrisharry99us" target="_blank">GitHub</a>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="section-label">Resume</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.03);border:0.5px solid rgba(240,236,228,0.08);border-radius:12px;padding:18px 22px;margin-bottom:8px;">
+        <div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:rgba(240,236,228,0.85);margin-bottom:4px;">Available for full-time & contract roles</div>
+          <div style="font-family:'Geist Mono',monospace;font-size:0.72rem;color:rgba(240,236,228,0.35);letter-spacing:0.15em;">Financial analytics · Data science · AI engineering</div>
+        </div>
+        <a href="/resume.pdf" target="_blank" class="project-link" style="white-space:nowrap;">Download CV</a>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Blog Overlay -->
+<div class="fs-overlay" id="blog-overlay" onclick="handleFsClick(event,'blog-overlay')">
+  <div class="fs-card">
+    <div class="fs-header">
+      <div>
+        <div class="fs-title">Writing</div>
+        <div class="fs-subtitle">Thinking out loud</div>
+      </div>
+      <div class="fs-close" onclick="closeOverlay('blog-overlay')">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><line x1="1" y1="1" x2="11" y2="11" stroke="rgba(240,236,228,0.8)" stroke-width="1.5" stroke-linecap="round"/><line x1="11" y1="1" x2="1" y2="11" stroke="rgba(240,236,228,0.8)" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </div>
+    </div>
+    <div class="fs-body">
+
+      <div class="blog-post">
+        <div class="blog-date">Mar 2026 · 8 min read</div>
+        <div class="blog-title">Building a Gibbs Sampler from Scratch in Python</div>
+        <div class="blog-preview">How I implemented a custom MCMC sampler for a Bayesian hierarchical model — no PyMC, no shortcuts, just NumPy.</div>
+        <a class="blog-read" href="https://medium.com" target="_blank">Read on Medium →</a>
+      </div>
+
+      <div class="blog-post">
+        <div class="blog-date">Feb 2026 · 6 min read</div>
+        <div class="blog-title">SARIMA Modeling in Python vs R: What's Actually Different</div>
+        <div class="blog-preview">Sign conventions, coefficient definitions, and why your Python ARIMA output won't match R's arima() — a practical guide.</div>
+        <a class="blog-read" href="https://medium.com" target="_blank">Read on Medium →</a>
+      </div>
+
+      <div class="blog-post">
+        <div class="blog-date">Jan 2026 · 7 min read</div>
+        <div class="blog-title">What 14 Years of CDC Data Tells Us About Obesity and Behavior</div>
+        <div class="blog-preview">Key findings from an ML analysis of 110K+ BRFSS survey records — what predicts obesity rates and what doesn't.</div>
+        <a class="blog-read" href="https://medium.com" target="_blank">Read on Medium →</a>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div id="rain-overlay"></div>
+
+<div id="tooltip">
+  <div id="tooltip-label">Portfolio</div>
+  <i id="tooltip-line"></i>
+</div>
+
+<div id="hint">
+  <span>Move mouse to look around &nbsp;·&nbsp; Click to explore</span>
+</div>
+
+<audio id="bg-music" crossorigin="anonymous">
+  <source src="https://stream.0nlineradio.com/jazz?ref=radiobrowser" type="audio/mpeg">
+  <source src="https://jazz-wr04.ice.infomaniak.ch/jazz-wr04-128.mp3" type="audio/mpeg">
+</audio>
+
+<div id="music-player" onclick="toggleMusic()">
+  <div id="vinyl" class="spinning"></div>
+  <div id="player-info">
+    <div id="track-name">Jazz Radio · Live</div>
+    <div id="player-status">Playing</div>
+  </div>
+  <div id="mute-btn">
+    <svg id="icon-sound" width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M2 5.5h2.5L8 2.5v11L4.5 10.5H2V5.5z" fill="rgba(240,236,228,0.7)"/>
+      <path d="M10.5 5.5c1 .8 1.5 1.5 1.5 2.5s-.5 1.7-1.5 2.5" stroke="rgba(240,236,228,0.7)" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+      <path d="M12.5 3.5c1.8 1.2 2.5 2.8 2.5 4.5s-.7 3.3-2.5 4.5" stroke="rgba(240,236,228,0.7)" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+    </svg>
+    <svg id="icon-muted" width="16" height="16" viewBox="0 0 16 16" fill="none" style="display:none">
+      <path d="M2 5.5h2.5L8 2.5v11L4.5 10.5H2V5.5z" fill="rgba(240,236,228,0.4)"/>
+      <line x1="10" y1="5" x2="15" y2="11" stroke="rgba(240,236,228,0.4)" stroke-width="1.4" stroke-linecap="round"/>
+      <line x1="15" y1="5" x2="10" y2="11" stroke="rgba(240,236,228,0.4)" stroke-width="1.4" stroke-linecap="round"/>
+    </svg>
+  </div>
+</div>
+
+<div id="fade"></div>
+<div id="cursor"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ── In-app browser detection (WhatsApp, Instagram, etc) ──
+(function() {
+  const ua = navigator.userAgent || '';
+  const isInApp = /FBAN|FBAV|Instagram|WhatsApp|Line|Twitter|Snapchat/.test(ua);
+  const isIOS = /iPhone|iPad|iPod/.test(ua);
+  if (isInApp && isIOS) {
+    document.body.innerHTML = `
+      <div style="
+        position:fixed;inset:0;background:#0a0806;
+        display:flex;flex-direction:column;
+        align-items:center;justify-content:center;
+        font-family:'Geist Mono',monospace;padding:40px;text-align:center;
+      ">
+        <div style="font-size:2rem;margin-bottom:24px;">🌐</div>
+        <div style="color:rgba(240,236,228,0.9);font-size:0.9rem;
+          letter-spacing:0.15em;text-transform:uppercase;margin-bottom:16px;">
+          Open in Safari
+        </div>
+        <div style="color:rgba(240,236,228,0.4);font-size:0.65rem;
+          letter-spacing:0.1em;line-height:1.8;margin-bottom:32px;">
+          This experience uses 3D graphics that<br>
+          require Safari to run properly.<br><br>
+          Tap the button below or copy the link<br>
+          and paste it into Safari.
+        </div>
+        <a href="${window.location.href}"
+          style="
+            color:#d4924a;font-size:0.65rem;letter-spacing:0.2em;
+            text-transform:uppercase;text-decoration:none;
+            border:0.5px solid rgba(212,146,74,0.4);
+            padding:12px 24px;border-radius:6px;
+          "
+          target="_blank" rel="noopener">
+          Open in Safari →
+        </a>
+      </div>
+    `;
+    return;
+  }
+})();
+
+// ── Safari bfcache fix — WebGL context lost on navigation ──
+window.addEventListener('pageshow', (e) => {
+  if (e.persisted) window.location.reload();
+});
+
+// ── Cursor ───────────────────────────────────────────────
+const cursorEl  = document.getElementById('cursor');
+const mouse     = new THREE.Vector2(0, 0); // start centred
+const rawMouse  = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+
+document.addEventListener('mousemove', e => {
+  rawMouse.x = e.clientX;
+  rawMouse.y = e.clientY;
+  cursorEl.style.left = e.clientX + 'px';
+  cursorEl.style.top  = e.clientY + 'px';
+  mouse.x =  (e.clientX / window.innerWidth)  * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+});
+
+// ── Renderer ─────────────────────────────────────────────
+const container = document.getElementById('canvas-container');
+const renderer  = new THREE.WebGLRenderer({
+  antialias: true,
+  powerPreference: 'default',
+  alpha: false
+});
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+renderer.shadowMap.enabled = false;
+renderer.toneMapping = THREE.LinearToneMapping;
+renderer.toneMappingExposure = 1.0;
+container.appendChild(renderer.domElement);
+// Safari compositing fix — forces canvas onto its own GPU layer
+renderer.domElement.style.webkitTransform = 'translateZ(0)';
+renderer.domElement.style.transform = 'translateZ(0)';
+
+// ── Scene ────────────────────────────────────────────────
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0c10);
+scene.fog = new THREE.Fog(0x0a0c10, 12, 28);
+
+// ── Camera ───────────────────────────────────────────────
+const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(0, 1.1, 2.0);
+
+// Camera look target — controlled by mouse
+const lookTarget = new THREE.Vector3(0, 1.1, -2.0);
+const lookCurrent = new THREE.Vector3(0, 1.1, -2.0);
+
+// ── Materials helper ─────────────────────────────────────
+function mat(color, rough = 0.8, metal = 0.0, emissive = 0x000000, emissiveIntensity = 0) {
+  return new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal, emissive, emissiveIntensity });
+}
+
+// ── Room geometry ────────────────────────────────────────
+
+// Floor
+const floor = new THREE.Mesh(
+  new THREE.PlaneGeometry(12, 12),
+  mat(0x3d2a18, 0.75, 0.05)
+);
+floor.rotation.x = -Math.PI / 2;
+floor
+scene.add(floor);
+
+// Back wall
+const backWall = new THREE.Mesh(
+  new THREE.PlaneGeometry(12, 6),
+  mat(0x2e2218, 0.9)
+);
+backWall.position.set(0, 3, -4);
+backWall
+scene.add(backWall);
+
+// Left wall
+const leftWall = new THREE.Mesh(
+  new THREE.PlaneGeometry(12, 6),
+  mat(0x2a1e14, 0.9)
+);
+leftWall.position.set(-6, 3, 0);
+leftWall.rotation.y = Math.PI / 2;
+leftWall
+scene.add(leftWall);
+
+// Right wall
+const rightWall = new THREE.Mesh(
+  new THREE.PlaneGeometry(12, 6),
+  mat(0x2a1e14, 0.9)
+);
+rightWall.position.set(6, 3, 0);
+rightWall.rotation.y = -Math.PI / 2;
+rightWall
+scene.add(rightWall);
+
+// Ceiling
+const ceiling = new THREE.Mesh(
+  new THREE.PlaneGeometry(12, 12),
+  mat(0x221a10, 0.95)
+);
+ceiling.rotation.x = Math.PI / 2;
+ceiling.position.y = 6;
+scene.add(ceiling);
+
+// ── Baseboard trim ───────────────────────────────────────
+function addBaseboard(x, y, z, w, h, d, ry = 0) {
+  const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(0x1e1b16, 0.9));
+  b.position.set(x, y, z);
+  b.rotation.y = ry;
+  scene.add(b);
+}
+addBaseboard(0, 0.06, -3.95, 12, 0.12, 0.05);
+addBaseboard(-5.95, 0.06, 0, 0.05, 0.12, 12, 0);
+addBaseboard( 5.95, 0.06, 0, 0.05, 0.12, 12, 0);
+
+// ── Coffee table ─────────────────────────────────────────
+const tableTop = new THREE.Mesh(
+  new THREE.BoxGeometry(1.6, 0.08, 0.65),
+  mat(0x3a2010, 0.45, 0.15)
+);
+tableTop.position.set(0, 0.62, 0.5);
+scene.add(tableTop);
+
+// Edge trim — slightly darker band around table perimeter
+const tableEdgeF = new THREE.Mesh(
+  new THREE.BoxGeometry(1.6, 0.08, 0.012),
+  mat(0x241408, 0.5, 0.2)
+);
+tableEdgeF.position.set(0, 0.62, 0.827);
+scene.add(tableEdgeF);
+
+const tableEdgeB = new THREE.Mesh(
+  new THREE.BoxGeometry(1.6, 0.08, 0.012),
+  mat(0x241408, 0.5, 0.2)
+);
+tableEdgeB.position.set(0, 0.62, 0.173);
+scene.add(tableEdgeB);
+
+const tableEdgeL = new THREE.Mesh(
+  new THREE.BoxGeometry(0.012, 0.08, 0.65),
+  mat(0x241408, 0.5, 0.2)
+);
+tableEdgeL.position.set(-0.806, 0.62, 0.5);
+scene.add(tableEdgeL);
+
+const tableEdgeR = new THREE.Mesh(
+  new THREE.BoxGeometry(0.012, 0.08, 0.65),
+  mat(0x241408, 0.5, 0.2)
+);
+tableEdgeR.position.set(0.806, 0.62, 0.5);
+scene.add(tableEdgeR);
+
+[-0.7, 0.7].forEach(x => {
+  [-0.26, 0.26].forEach(z => {
+    const leg = new THREE.Mesh(
+      new THREE.BoxGeometry(0.06, 0.58, 0.06),
+      mat(0x1e1208, 0.6, 0.2)
+    );
+    leg.position.set(x, 0.29, 0.5 + z);
+    scene.add(leg);
+  });
+});
+
+// ── Fireplace ────────────────────────────────────────────
+// Back wall patch behind fireplace
+const fpBackWall = new THREE.Mesh(
+  new THREE.PlaneGeometry(3.2, 4.0),
+  mat(0x2e2218, 0.95)
+);
+fpBackWall.position.set(0, 2.0, -3.99);
+scene.add(fpBackWall);
+
+// Main surround base — grey stone
+const fpSurround = new THREE.Mesh(
+  new THREE.BoxGeometry(2.8, 2.6, 0.35),
+  mat(0x444444, 0.92)
+);
+fpSurround.position.set(0, 1.3, -3.82);
+scene.add(fpSurround);
+
+// Brick pattern — contained within surround, proper alternating offset
+const stoneColors = [0x888888, 0x555555, 0x999999, 0x444444, 0xaaaaaa, 0x666666];
+const bW = 0.44;  // brick width
+const bH = 0.2;   // brick height
+const bG = 0.025; // grout gap
+const surL = -1.38; // surround left edge
+const surR =  1.38; // surround right edge
+const surBot = 0.02;
+const surTop = 2.56;
+// Firebox opening bounds
+const fbL = -0.76, fbR = 0.76, fbBot = 0.22, fbTop = 1.35;
+
+let row = 0;
+let by = surBot;
+while (by + bH <= surTop + 0.01) {
+  const offset = row % 2 === 0 ? 0 : (bW + bG) / 2;
+  let bx = surL + offset;
+  while (bx < surR) {
+    const cx = bx + bW / 2;
+    const cy = by + bH / 2;
+    // Clip to surround
+    if (cx - bW / 2 >= surR || cx + bW / 2 <= surL) { bx += bW + bG; continue; }
+    // Skip if fully inside firebox
+    if (cx > fbL && cx < fbR && cy > fbBot && cy < fbTop) { bx += bW + bG; continue; }
+    const clampedW = Math.min(cx + bW / 2, surR) - Math.max(cx - bW / 2, surL);
+    const finalX = (Math.max(cx - bW / 2, surL) + Math.min(cx + bW / 2, surR)) / 2;
+    const brick = new THREE.Mesh(
+      new THREE.BoxGeometry(clampedW - bG, bH - bG, 0.07),
+      mat(stoneColors[(row * 4 + Math.floor((bx - surL) / (bW + bG))) % stoneColors.length], 0.93)
+    );
+    brick.position.set(finalX, cy, -3.62);
+    scene.add(brick);
+    bx += bW + bG;
+  }
+  by += bH + bG;
+  row++;
+}
+
+// Firebox void
+const fpBox = new THREE.Mesh(
+  new THREE.BoxGeometry(1.5, 1.15, 0.4),
+  mat(0x0a0806, 0.99)
+);
+fpBox.position.set(0, 0.78, -3.78);
+scene.add(fpBox);
+
+// Firebox back wall
+const fpBoxBack = new THREE.Mesh(
+  new THREE.PlaneGeometry(1.48, 1.13),
+  mat(0x0d0a08, 0.99)
+);
+fpBoxBack.position.set(0, 0.78, -3.96);
+scene.add(fpBoxBack);
+
+// Mantle shelf — light grey stone slab
+const mantle = new THREE.Mesh(
+  new THREE.BoxGeometry(3.1, 0.12, 0.45),
+  mat(0xbbbbbb, 0.5, 0.1)
+);
+mantle.position.set(0, 2.42, -3.68);
+scene.add(mantle);
+
+// Hearth — darker grey stone
+const hearth = new THREE.Mesh(
+  new THREE.BoxGeometry(2.2, 0.07, 0.55),
+  mat(0x333333, 0.88)
+);
+hearth.position.set(0, 0.035, -3.65);
+scene.add(hearth);
+
+// ── Fire — canvas texture ─────────────────────────────────
+const fireCanvas = document.createElement('canvas');
+fireCanvas.width  = 128;
+fireCanvas.height = 192;
+const fireCtx = fireCanvas.getContext('2d');
+
+const fireTex = new THREE.CanvasTexture(fireCanvas);
+const fireplane = new THREE.Mesh(
+  new THREE.PlaneGeometry(1.3, 1.0),
+  new THREE.MeshStandardMaterial({
+    map: fireTex,
+    transparent: true,
+    opacity: 0.92,
+    emissive: 0xff3300,
+    emissiveIntensity: 0.4,
+    roughness: 1,
+    depthWrite: false,
+  })
+);
+fireplane.position.set(0, 0.72, -3.50);
+scene.add(fireplane);
+
+function updateFireCanvas() {
+  const t = performance.now() / 1000;
+  fireCtx.clearRect(0, 0, 128, 192);
+
+  // Draw layered flame shapes
+  const layers = [
+    { x: 64, baseY: 192, w: 80,  h: 130, color: '#ff2200', alpha: 0.95 },
+    { x: 52, baseY: 192, w: 55,  h: 155, color: '#ff6600', alpha: 0.85 },
+    { x: 74, baseY: 192, w: 45,  h: 140, color: '#ff8800', alpha: 0.80 },
+    { x: 64, baseY: 192, w: 30,  h: 160, color: '#ffaa00', alpha: 0.70 },
+    { x: 60, baseY: 192, w: 18,  h: 170, color: '#ffdd44', alpha: 0.55 },
+  ];
+
+  layers.forEach((l, i) => {
+    const wobble = Math.sin(t * (3.1 + i * 0.7) + i) * 8;
+    const heightVar = Math.sin(t * (2.3 + i * 0.5)) * 12;
+    fireCtx.beginPath();
+    fireCtx.moveTo(l.x - l.w / 2, l.baseY);
+    fireCtx.bezierCurveTo(
+      l.x - l.w / 2, l.baseY - l.h * 0.4,
+      l.x + wobble - l.w / 4, l.baseY - l.h * 0.7,
+      l.x + wobble, l.baseY - l.h - heightVar
+    );
+    fireCtx.bezierCurveTo(
+      l.x + wobble + l.w / 4, l.baseY - l.h * 0.7,
+      l.x + l.w / 2, l.baseY - l.h * 0.4,
+      l.x + l.w / 2, l.baseY
+    );
+    fireCtx.fillStyle = l.color;
+    fireCtx.globalAlpha = l.alpha;
+    fireCtx.fill();
+  });
+  fireCtx.globalAlpha = 1.0;
+  fireTex.needsUpdate = true;
+}
+
+// ── TV above fireplace ────────────────────────────────────
+const tvMount = new THREE.Mesh(
+  new THREE.BoxGeometry(0.08, 0.4, 0.08),
+  mat(0x1a1a1a, 0.4, 0.5)
+);
+tvMount.position.set(0, 3.3, -3.88);
+scene.add(tvMount);
+
+const tvBody = new THREE.Mesh(
+  new THREE.BoxGeometry(2.2, 1.3, 0.07),
+  mat(0x0d0d0d, 0.2, 0.5)
+);
+tvBody.position.set(0, 3.85, -3.86);
+scene.add(tvBody);
+
+const tvScreenMesh = new THREE.Mesh(
+  new THREE.PlaneGeometry(2.08, 1.2),
+  new THREE.MeshStandardMaterial({ color: 0x05080f, emissive: 0x080c18, emissiveIntensity: 0.6, roughness: 0 })
+);
+tvScreenMesh.position.set(0, 3.85, -3.82);
+scene.add(tvScreenMesh);
+
+const tvBezel = new THREE.Mesh(
+  new THREE.BoxGeometry(2.24, 1.34, 0.04),
+  mat(0x111111, 0.3, 0.4)
+);
+tvBezel.position.set(0, 3.85, -3.84);
+scene.add(tvBezel);
+
+// ── Floating shelves flanking fireplace ───────────────────
+const shelfMat = mat(0x6a4a28, 0.5, 0.1);
+const shelfBracketMat = mat(0x222222, 0.4, 0.5);
+
+// Side wall shelves — run along z-axis, mounted on left/right walls
+function addSideShelf(wx, sy, sz, len, side) {
+  // shelf: thin in x (depth into room), wide along z
+  const shelf = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.05, len), shelfMat);
+  shelf.position.set(wx, sy, sz);
+  scene.add(shelf);
+  // Brackets along z
+  [-len * 0.3, len * 0.3].forEach(bz => {
+    const bracket = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.18, 0.04), shelfBracketMat);
+    bracket.position.set(wx, sy - 0.1, sz + bz);
+    scene.add(bracket);
+  });
+}
+
+// Shelves on back wall — left and right of fireplace
+// Fireplace surround is ~2.8 wide centred at x=0, so beyond x=±1.4
+// Back wall at z=-3.99, shelves face forward (toward camera)
+
+function addWallShelf(sx, sy, w) {
+  const shelf = new THREE.Mesh(
+    new THREE.BoxGeometry(w, 0.06, 0.22),
+    shelfMat
+  );
+  shelf.position.set(sx, sy, -3.76);
+  scene.add(shelf);
+
+  // Brackets underneath
+  [-w * 0.3, w * 0.3].forEach(bx => {
+    const bracket = new THREE.Mesh(
+      new THREE.BoxGeometry(0.05, 0.2, 0.2),
+      shelfBracketMat
+    );
+    bracket.position.set(sx + bx, sy - 0.12, -3.76);
+    scene.add(bracket);
+  });
+}
+
+// Left side — two shelves
+addWallShelf(-4.2, 3.2, 2.4);
+addWallShelf(-4.2, 3.9, 2.4);
+
+// Right side — two shelves
+addWallShelf(4.2, 3.2, 2.4);
+addWallShelf(4.2, 3.9, 2.4);
+
+// Items on left shelves
+[[-4.7, 3.28, 0.2, 0x8b2020],
+ [-4.3, 3.28, 0.18, 0x1a3a5a],
+ [-3.9, 3.28, 0.22, 0x2a5a2a],
+ [-4.5, 3.98, 0.16, 0x5a3010]].forEach(([x,y,h,c]) => {
+  const b = new THREE.Mesh(new THREE.BoxGeometry(0.1, h, 0.16), mat(c, 0.85));
+  b.position.set(x, y, -3.76);
+  scene.add(b);
+});
+
+const lShelfCandle = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.12, 8), mat(0xf0e8d0, 0.9));
+lShelfCandle.position.set(-3.7, 3.98, -3.76);
+scene.add(lShelfCandle);
+
+const lShelfPlant = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.03, 0.08, 8), mat(0x8a3a1e, 0.85));
+lShelfPlant.position.set(-4.8, 3.95, -3.76);
+scene.add(lShelfPlant);
+const lShelfLeaf = new THREE.Mesh(new THREE.SphereGeometry(0.048, 6, 5), mat(0x3a7228, 0.8));
+lShelfLeaf.position.set(-4.8, 4.03, -3.76);
+scene.add(lShelfLeaf);
+
+// Items on right shelves
+[[3.9, 3.28, 0.2, 0x6b3010],
+ [4.3, 3.28, 0.18, 0x1a2a5a],
+ [4.7, 3.28, 0.16, 0x8b2020]].forEach(([x,y,h,c]) => {
+  const b = new THREE.Mesh(new THREE.BoxGeometry(0.1, h, 0.16), mat(c, 0.85));
+  b.position.set(x, y, -3.76);
+  scene.add(b);
+});
+
+const rShelfVase = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.038, 0.15, 8), mat(0x1a3a4a, 0.4, 0.3));
+rShelfVase.position.set(3.7, 3.97, -3.76);
+scene.add(rShelfVase);
+
+const rShelfFrame = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.18, 0.04), mat(0x2a1e0e, 0.6));
+rShelfFrame.position.set(4.6, 3.98, -3.76);
+scene.add(rShelfFrame);
+
+// ── Sideboard cabinets ────────────────────────────────────
+function addSideboard(cx, cz, w, h) {
+  const darkWood  = mat(0x1e1208, 0.55, 0.15);
+  const darkWood2 = mat(0x150c05, 0.6, 0.1);
+  const glassMat  = new THREE.MeshStandardMaterial({
+    color: 0x8aaacc, transparent: true, opacity: 0.22,
+    roughness: 0.05, metalness: 0.3, depthWrite: false,
+  });
+
+  const legH   = 0.14;
+  const baseH  = 0.06;
+  const topH   = 0.05;
+  const bodyH  = h - legH - baseH - topH;
+  const bodyY  = legH + baseH + bodyH / 2;
+  const topY   = legH + baseH + bodyH + topH / 2;
+  const baseY  = legH + baseH / 2;
+
+  // Main body
+  const body = new THREE.Mesh(new THREE.BoxGeometry(w, bodyH, 0.48), darkWood);
+  body.position.set(cx, bodyY, cz);
+  scene.add(body);
+
+  // Top surface
+  const top = new THREE.Mesh(new THREE.BoxGeometry(w + 0.06, topH, 0.52), darkWood2);
+  top.position.set(cx, topY, cz);
+  scene.add(top);
+
+  // Base plinth
+  const base = new THREE.Mesh(new THREE.BoxGeometry(w - 0.06, baseH, 0.44), darkWood2);
+  base.position.set(cx, baseY, cz);
+  scene.add(base);
+
+  // Legs
+  [[-w/2 + 0.12, 0.16], [w/2 - 0.12, 0.16],
+   [-w/2 + 0.12, -0.16], [w/2 - 0.12, -0.16]].forEach(([bx, bz]) => {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.09, legH, 0.09), darkWood2);
+    leg.position.set(cx + bx, legH / 2, cz + bz);
+    scene.add(leg);
+  });
+
+  // 4 doors evenly spaced
+  const numDoors = 4;
+  const doorW    = (w - 0.08) / numDoors;
+  const doorH    = bodyH - 0.1;
+  const doorY    = bodyY;
+
+  for (let i = 0; i < numDoors; i++) {
+    const dx = -w / 2 + 0.04 + doorW * (i + 0.5);
+
+    // Door frame
+    const doorFrame = new THREE.Mesh(
+      new THREE.BoxGeometry(doorW - 0.04, doorH, 0.04),
+      darkWood2
+    );
+    doorFrame.position.set(cx + dx, doorY, cz + 0.245);
+    scene.add(doorFrame);
+
+    // Glass panel
+    const glassW = doorW - 0.14;
+    const glassH = doorH - 0.14;
+    const glass = new THREE.Mesh(new THREE.PlaneGeometry(glassW, glassH), glassMat);
+    glass.position.set(cx + dx, doorY, cz + 0.30);
+    scene.add(glass);
+
+    // Arch detail
+    const arch = new THREE.Mesh(
+      new THREE.BoxGeometry(glassW * 0.7, 0.03, 0.02),
+      mat(0x2a1a0a, 0.7)
+    );
+    arch.position.set(cx + dx, doorY + doorH * 0.3, cz + 0.265);
+    scene.add(arch);
+
+    // Handle
+    const handle = new THREE.Mesh(
+      new THREE.SphereGeometry(0.02, 6, 6),
+      mat(0x2a2a2a, 0.3, 0.7)
+    );
+    const hSide = i < numDoors / 2 ? (doorW * 0.25) : -(doorW * 0.25);
+    handle.position.set(cx + dx + hSide, doorY, cz + 0.275);
+    scene.add(handle);
+  }
+
+  // Vertical dividers
+  for (let i = 1; i < numDoors; i++) {
+    const dx = -w / 2 + 0.04 + doorW * i;
+    const div = new THREE.Mesh(
+      new THREE.BoxGeometry(0.06, bodyH, 0.05),
+      darkWood
+    );
+    div.position.set(cx + dx, bodyY, cz + 0.245);
+    scene.add(div);
+  }
+}
+
+// Fireplace surround edges at x=±1.4, walls at x=±6
+// Available space each side = 4.6 units, centre at ±3.7
+addSideboard(-3.4, -3.65, 3.4, 1.5);
+addSideboard( 3.4, -3.65, 3.4, 1.5);
+
+// ── Record player on right sideboard ─────────────────────
+// Right sideboard top surface is at y = legH+baseH+bodyH+topH = 0.14+0.06+(1.5-0.14-0.06-0.05)+0.05 = 1.5
+const rpX = 3.4, rpZ = -3.65, rpY = 1.53;
+
+// Base unit
+const rpBase = new THREE.Mesh(
+  new THREE.BoxGeometry(0.38, 0.06, 0.34),
+  mat(0x1a1208, 0.5, 0.2)
+);
+rpBase.position.set(rpX, rpY + 0.03, rpZ);
+scene.add(rpBase);
+
+// Platter
+const rpPlatter = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.13, 0.13, 0.018, 24),
+  mat(0x111111, 0.2, 0.4)
+);
+rpPlatter.position.set(rpX - 0.04, rpY + 0.069, rpZ);
+scene.add(rpPlatter);
+
+// Vinyl record
+const rpRecord = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.12, 0.12, 0.008, 24),
+  mat(0x0a0806, 0.05, 0.1)
+);
+rpRecord.position.set(rpX - 0.04, rpY + 0.081, rpZ);
+scene.add(rpRecord);
+
+// Record label (centre)
+const rpLabel = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.038, 0.038, 0.01, 16),
+  mat(0xd4924a, 0.7)
+);
+rpLabel.position.set(rpX - 0.04, rpY + 0.088, rpZ);
+scene.add(rpLabel);
+
+// Tonearm base
+const rpArmBase = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.018, 0.018, 0.04, 8),
+  mat(0x2a2a2a, 0.3, 0.6)
+);
+rpArmBase.position.set(rpX + 0.1, rpY + 0.08, rpZ - 0.08);
+scene.add(rpArmBase);
+
+// Tonearm
+const rpArm = new THREE.Mesh(
+  new THREE.BoxGeometry(0.006, 0.006, 0.18),
+  mat(0x333333, 0.3, 0.6)
+);
+rpArm.position.set(rpX + 0.1, rpY + 0.1, rpZ);
+rpArm.rotation.y = 0.3;
+scene.add(rpArm);
+
+// ── Mantle decorations — clean minimal ────────────────────
+// Small clock centre
+const clockBody = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.12, 0.12, 0.04, 16),
+  mat(0x1a1a1a, 0.3, 0.5)
+);
+clockBody.rotation.x = Math.PI / 2;
+clockBody.position.set(0, 2.56, -3.64);
+scene.add(clockBody);
+
+const clockFace = new THREE.Mesh(
+  new THREE.CircleGeometry(0.11, 16),
+  mat(0xf0ece4, 0.8)
+);
+clockFace.position.set(0, 2.56, -3.62);
+scene.add(clockFace);
+
+// ── Bookshelves ───────────────────────────────────────────
+function addBookshelf(side, zPos) {
+  const wx   = side * 5.6;
+  // For left wall (side=-1): front face is at wx+0.15 = -5.45
+  // Books must be placed at wx + 0.22 (just in front of shelf face)
+  const bookX = wx + (side === -1 ? 0.22 : -0.22);
+
+  // Back panel — dark mahogany
+  const unit = new THREE.Mesh(
+    new THREE.BoxGeometry(0.28, 2.25, 1.55),
+    mat(0x2a1a0e, 0.85)
+  );
+  unit.position.set(wx, 1.12, zPos);
+  scene.add(unit);
+
+  // Side panels (left and right edges)
+  [-0.74, 0.74].forEach(dz => {
+    const side_panel = new THREE.Mesh(
+      new THREE.BoxGeometry(0.28, 2.25, 0.06),
+      mat(0x221408, 0.85)
+    );
+    side_panel.position.set(wx, 1.12, zPos + dz);
+    scene.add(side_panel);
+  });
+
+  // Shelf boards — clearly visible horizontal dividers
+  const shelfMat = mat(0x3a2510, 0.65, 0.1);
+  [0.0, 0.58, 1.18, 1.78, 2.2].forEach(sy => {
+    const shelf = new THREE.Mesh(
+      new THREE.BoxGeometry(0.32, 0.05, 1.48),
+      shelfMat
+    );
+    shelf.position.set(wx, sy, zPos);
+    scene.add(shelf);
+  });
+
+  // Books on each shelf — placed IN FRONT of back panel
+  const bookColors = [
+    0x8b2020, 0x1a4a2a, 0x1a2a5a, 0x6b4a10,
+    0x4a1a4a, 0x2a4a4a, 0x6b3010, 0x3a1a5a,
+    0x8b5020, 0x1a3a1a, 0x5a2020, 0x204a3a
+  ];
+
+  [0.0, 0.58, 1.18, 1.78].forEach((sy, row) => {
+    let bz = zPos - 0.68;
+    const maxZ = zPos + 0.68;
+    while (bz < maxZ) {
+      const bw  = 0.05 + Math.random() * 0.08;
+      const bh  = 0.22 + Math.random() * 0.28;
+      const col = bookColors[Math.floor(Math.random() * bookColors.length)];
+      const book = new THREE.Mesh(
+        new THREE.BoxGeometry(0.18, bh, bw),
+        mat(col, 0.8)
+      );
+      book.position.set(bookX, sy + bh / 2 + 0.06, bz + bw / 2);
+      scene.add(book);
+
+      // Occasional spine detail strip
+      if (Math.random() > 0.6) {
+        const spine = new THREE.Mesh(
+          new THREE.BoxGeometry(0.02, bh * 0.6, bw * 0.3),
+          mat(0xf0e0c0, 0.9)
+        );
+        spine.position.set(bookX + (side === -1 ? 0.1 : -0.1), sy + bh / 2 + 0.06, bz + bw / 2);
+        scene.add(spine);
+      }
+
+      bz += bw + 0.008;
+    }
+  });
+}
+
+addBookshelf(-1, -2.2);
+addBookshelf(-1, -0.8);
+
+// ── Curtains framing right window ────────────────────────
+// Rod runs along z-axis on the wall (rotation.x = PI/2)
+const curtainRod = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.016, 0.016, 3.2, 8),
+  mat(0x1a1a1a, 0.3, 0.7)
+);
+curtainRod.rotation.x = Math.PI / 2;
+curtainRod.position.set(5.88, 3.55, -1.1);
+scene.add(curtainRod);
+
+// Rod end caps
+[-2.7, 0.5].forEach(z => {
+  const cap = new THREE.Mesh(
+    new THREE.SphereGeometry(0.024, 6, 6),
+    mat(0x2a2a2a, 0.3, 0.7)
+  );
+  cap.position.set(5.88, 3.55, z);
+  scene.add(cap);
+});
+
+// Left curtain — hangs from rod, covers left side of window
+const curtainL = new THREE.Mesh(
+  new THREE.BoxGeometry(0.06, 2.8, 0.42),
+  mat(0x5a1818, 0.92)
+);
+curtainL.position.set(5.91, 2.15, 0.1);
+scene.add(curtainL);
+
+const curtainLFold1 = new THREE.Mesh(
+  new THREE.BoxGeometry(0.05, 2.8, 0.08),
+  mat(0x3d1010, 0.95)
+);
+curtainLFold1.position.set(5.91, 2.15, -0.06);
+scene.add(curtainLFold1);
+
+const curtainLFold2 = new THREE.Mesh(
+  new THREE.BoxGeometry(0.05, 2.8, 0.08),
+  mat(0x701e1e, 0.92)
+);
+curtainLFold2.position.set(5.91, 2.15, 0.08);
+scene.add(curtainLFold2);
+
+// Right curtain — hangs from rod, covers right side
+const curtainR = new THREE.Mesh(
+  new THREE.BoxGeometry(0.06, 2.8, 0.42),
+  mat(0x5a1818, 0.92)
+);
+curtainR.position.set(5.91, 2.15, -2.3);
+scene.add(curtainR);
+
+const curtainRFold1 = new THREE.Mesh(
+  new THREE.BoxGeometry(0.05, 2.8, 0.08),
+  mat(0x3d1010, 0.95)
+);
+curtainRFold1.position.set(5.91, 2.15, -2.14);
+scene.add(curtainRFold1);
+
+const curtainRFold2 = new THREE.Mesh(
+  new THREE.BoxGeometry(0.05, 2.8, 0.08),
+  mat(0x701e1e, 0.92)
+);
+curtainRFold2.position.set(5.91, 2.15, -2.26);
+scene.add(curtainRFold2);
+
+// ── Armchair front right corner ───────────────────────────
+const chairGroup = new THREE.Group();
+chairGroup.position.set(2.8, 0, 0.2);
+chairGroup.rotation.y = -2.0;
+
+// Seat
+const chairSeat = new THREE.Mesh(
+  new THREE.BoxGeometry(1.0, 0.22, 0.9),
+  mat(0x4a3828, 0.95)
+);
+chairSeat.position.y = 0.42;
+chairGroup.add(chairSeat);
+
+// Back
+const chairBack = new THREE.Mesh(
+  new THREE.BoxGeometry(1.0, 0.65, 0.18),
+  mat(0x423120, 0.95)
+);
+chairBack.position.set(0, 0.845, -0.36);
+chairGroup.add(chairBack);
+
+// Left arm
+const chairArmL = new THREE.Mesh(
+  new THREE.BoxGeometry(0.18, 0.32, 0.9),
+  mat(0x4a3828, 0.95)
+);
+chairArmL.position.set(-0.59, 0.53, 0);
+chairGroup.add(chairArmL);
+
+// Right arm
+const chairArmR = new THREE.Mesh(
+  new THREE.BoxGeometry(0.18, 0.32, 0.9),
+  mat(0x4a3828, 0.95)
+);
+chairArmR.position.set(0.59, 0.53, 0);
+chairGroup.add(chairArmR);
+
+// Legs
+[-0.38, 0.38].forEach(x => {
+  [-0.32, 0.32].forEach(z => {
+    const leg = new THREE.Mesh(
+      new THREE.BoxGeometry(0.07, 0.3, 0.07),
+      mat(0x1e1208, 0.6, 0.1)
+    );
+    leg.position.set(x, 0.15, z);
+    chairGroup.add(leg);
+  });
+});
+
+// Cushion
+const chairCushion = new THREE.Mesh(
+  new THREE.BoxGeometry(0.88, 0.1, 0.75),
+  mat(0x5a4535, 0.98)
+);
+chairCushion.position.set(0, 0.58, 0.04);
+chairGroup.add(chairCushion);
+
+scene.add(chairGroup);
+
+// Small side table next to armchair
+// ── Artwork above left bookshelves ────────────────────────
+// Frame 1
+const artFrame1 = new THREE.Mesh(
+  new THREE.BoxGeometry(0.08, 1.1, 0.7),
+  mat(0x2a1e0e, 0.6, 0.2)
+);
+artFrame1.position.set(-5.88, 3.4, -2.2);
+scene.add(artFrame1);
+
+const artCanvas1 = new THREE.Mesh(
+  new THREE.PlaneGeometry(0.6, 0.9),
+  mat(0x1a2a3a, 0.9)
+);
+artCanvas1.rotation.y = Math.PI / 2;
+artCanvas1.position.set(-5.84, 3.4, -2.2);
+scene.add(artCanvas1);
+
+// Art detail — abstract color block
+const artBlock1 = new THREE.Mesh(
+  new THREE.PlaneGeometry(0.35, 0.35),
+  mat(0x8b2020, 0.9)
+);
+artBlock1.rotation.y = Math.PI / 2;
+artBlock1.position.set(-5.83, 3.4, -2.25);
+scene.add(artBlock1);
+
+// Frame 2
+const artFrame2 = new THREE.Mesh(
+  new THREE.BoxGeometry(0.08, 0.75, 1.0),
+  mat(0x2a1e0e, 0.6, 0.2)
+);
+artFrame2.position.set(-5.88, 3.4, -0.8);
+scene.add(artFrame2);
+
+const artCanvas2 = new THREE.Mesh(
+  new THREE.PlaneGeometry(0.88, 0.62),
+  mat(0x2a1a0a, 0.9)
+);
+artCanvas2.rotation.y = Math.PI / 2;
+artCanvas2.position.set(-5.84, 3.4, -0.8);
+scene.add(artCanvas2);
+
+// Art detail — warm abstract
+const artBlock2a = new THREE.Mesh(
+  new THREE.PlaneGeometry(0.3, 0.5),
+  mat(0xd4924a, 0.9)
+);
+artBlock2a.rotation.y = Math.PI / 2;
+artBlock2a.position.set(-5.83, 3.4, -1.05);
+scene.add(artBlock2a);
+
+const artBlock2b = new THREE.Mesh(
+  new THREE.PlaneGeometry(0.3, 0.5),
+  mat(0x1a3a2a, 0.9)
+);
+artBlock2b.rotation.y = Math.PI / 2;
+artBlock2b.position.set(-5.83, 3.4, -0.58);
+scene.add(artBlock2b);
+// Night sky outside — sits deepest against wall
+const nightSky = new THREE.Mesh(
+  new THREE.PlaneGeometry(1.3, 1.2),
+  new THREE.MeshStandardMaterial({
+    color: 0x05080f,
+    emissive: 0x050a14,
+    emissiveIntensity: 0.4,
+    roughness: 1,
+  })
+);
+nightSky.rotation.y = -Math.PI / 2;
+nightSky.position.set(5.96, 2.1, -1.1);
+scene.add(nightSky);
+
+// Outer frame border — dark charcoal, contrasts warm wall
+const winFrameMat = mat(0x1a1a1a, 0.6, 0.2);
+
+// Top bar
+const winTop = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.11, 1.44), winFrameMat);
+winTop.position.set(5.84, 2.74, -1.1);
+scene.add(winTop);
+
+// Bottom bar
+const winBot = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.11, 1.44), winFrameMat);
+winBot.position.set(5.84, 1.46, -1.1);
+scene.add(winBot);
+
+// Left side bar
+const winLeft = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1.34, 0.11), winFrameMat);
+winLeft.position.set(5.84, 2.1, -1.82);
+scene.add(winLeft);
+
+// Right side bar
+const winRight = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1.34, 0.11), winFrameMat);
+winRight.position.set(5.84, 2.1, -0.38);
+scene.add(winRight);
+
+// Cross bar horizontal (mid)
+const winBarH = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.08, 1.3), winFrameMat);
+winBarH.position.set(5.83, 2.1, -1.1);
+scene.add(winBarH);
+
+// Cross bar vertical (mid)
+const winBarV = new THREE.Mesh(new THREE.BoxGeometry(0.11, 1.28, 0.08), winFrameMat);
+winBarV.position.set(5.83, 2.1, -1.1);
+scene.add(winBarV);
+
+// Rain on window — canvas texture (clean, no z-fighting)
+const rainCanvas = document.createElement('canvas');
+rainCanvas.width  = 256;
+rainCanvas.height = 512;
+const rainCtx = rainCanvas.getContext('2d');
+
+// Initialise drop data
+const WIN_DROPS = 80;
+const drops = Array.from({ length: WIN_DROPS }, () => ({
+  x:     Math.random() * 256,
+  y:     Math.random() * 512,
+  len:   18 + Math.random() * 28,
+  speed: 1.8 + Math.random() * 2.4,
+  alpha: 0.25 + Math.random() * 0.35,
+}));
+
+const rainTex = new THREE.CanvasTexture(rainCanvas);
+
+const glassMat = new THREE.MeshStandardMaterial({
+  map: rainTex,
+  transparent: true,
+  opacity: 0.92,
+  roughness: 0.05,
+  metalness: 0.1,
+  color: 0xffffff,
+});
+const glass = new THREE.Mesh(new THREE.PlaneGeometry(1.28, 1.18), glassMat);
+glass.rotation.y = -Math.PI / 2;
+glass.position.set(5.80, 2.1, -1.1);
+scene.add(glass);
+
+// Warm interior reflection on glass
+const glowMat = new THREE.MeshStandardMaterial({
+  color: 0xd4924a,
+  emissive: 0xd4924a,
+  emissiveIntensity: 0.06,
+  transparent: true,
+  opacity: 0.10,
+  roughness: 0,
+});
+const glowReflect = new THREE.Mesh(new THREE.PlaneGeometry(1.28, 1.18), glowMat);
+glowReflect.rotation.y = -Math.PI / 2;
+glowReflect.position.set(5.78, 2.1, -1.1);
+scene.add(glowReflect);
+
+function updateRainCanvas() {
+  // Fade previous frame — creates streak trail effect
+  rainCtx.fillStyle = 'rgba(5, 8, 18, 0.45)';
+  rainCtx.fillRect(0, 0, 256, 512);
+
+  drops.forEach(d => {
+    rainCtx.beginPath();
+    rainCtx.moveTo(d.x, d.y);
+    rainCtx.lineTo(d.x - d.len * 0.08, d.y + d.len);
+    rainCtx.strokeStyle = `rgba(140, 175, 220, ${d.alpha})`;
+    rainCtx.lineWidth = 1.2;
+    rainCtx.stroke();
+
+    d.y += d.speed;
+    if (d.y > 512 + d.len) {
+      d.y = -d.len;
+      d.x = Math.random() * 256;
+    }
+  });
+
+  rainTex.needsUpdate = true;
+}
+
+// ── Floor rug ────────────────────────────────────────────
+// ── Striped rug ───────────────────────────────────────────
+const rugCanvas = document.createElement('canvas');
+rugCanvas.width  = 512;
+rugCanvas.height = 256;
+const rugCtx = rugCanvas.getContext('2d');
+
+// Background — near black
+rugCtx.fillStyle = '#0d0808';
+rugCtx.fillRect(0, 0, 512, 256);
+
+// Dark red stripes
+const stripeColors = ['#6b0f0f', '#8b1a1a', '#4a0a0a', '#7a1212', '#3d0808'];
+const stripeWidths = [28, 14, 8, 22, 10, 18, 6, 26, 12, 8];
+let sx = 0;
+let si = 0;
+while (sx < 512) {
+  // Black gap
+  sx += 6;
+  const sw = stripeWidths[si % stripeWidths.length];
+  rugCtx.fillStyle = stripeColors[si % stripeColors.length];
+  rugCtx.fillRect(sx, 0, sw, 256);
+  sx += sw;
+  si++;
+}
+
+// Thin gold accent lines
+rugCtx.strokeStyle = '#4a3010';
+rugCtx.lineWidth = 2;
+[60, 120, 180, 240, 300, 360, 420, 480].forEach(x => {
+  rugCtx.beginPath();
+  rugCtx.moveTo(x, 0);
+  rugCtx.lineTo(x, 256);
+  rugCtx.stroke();
+});
+
+// Border
+rugCtx.strokeStyle = '#6b0f0f';
+rugCtx.lineWidth = 8;
+rugCtx.strokeRect(4, 4, 504, 248);
+
+const rugTex = new THREE.CanvasTexture(rugCanvas);
+rugTex.wrapS = THREE.RepeatWrapping;
+
+const rug = new THREE.Mesh(
+  new THREE.PlaneGeometry(2.8, 2.2),
+  new THREE.MeshStandardMaterial({
+    map: rugTex,
+    roughness: 0.99,
+  })
+);
+rug.rotation.x = -Math.PI / 2;
+rug.position.set(0, 0.001, 0.9);
+scene.add(rug);
+
+// ── Lamp (right side) ────────────────────────────────────
+const lampBase = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.08, 0.12, 0.06, 12),
+  mat(0x1a1510, 0.5, 0.3)
+);
+lampBase.position.set(5.0, 0, -3.2);
+scene.add(lampBase);
+
+const lampPole = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.02, 0.02, 1.7, 8),
+  mat(0x1c1814, 0.4, 0.4)
+);
+lampPole.position.set(5.0, 0.88, -3.2);
+scene.add(lampPole);
+
+const lampShadeMat = new THREE.MeshStandardMaterial({
+  color: 0x2a2015,
+  roughness: 0.8,
+  emissive: 0xd4924a,
+  emissiveIntensity: 0.18,
+  side: THREE.DoubleSide,
+});
+const lampShade = new THREE.Mesh(
+  new THREE.ConeGeometry(0.28, 0.4, 16, 1, true),
+  lampShadeMat
+);
+lampShade.position.set(5.0, 1.9, -3.2);
+lampShade.rotation.x = Math.PI;
+scene.add(lampShade);
+
+// Small bulb visible inside shade
+const bulbMat = new THREE.MeshStandardMaterial({ color: 0x222222, emissive: 0x222222, emissiveIntensity: 0.1 });
+const bulb = new THREE.Mesh(
+  new THREE.SphereGeometry(0.045, 8, 8),
+  bulbMat
+);
+bulb.position.set(5.0, 1.78, -3.2);
+scene.add(bulb);
+
+// ── Lighting ─────────────────────────────────────────────
+const ambient = new THREE.AmbientLight(0x0a0a12, 2.2);
+scene.add(ambient);
+
+const lampLight = new THREE.PointLight(0xd4924a, 6.0, 18);
+lampLight.position.set(5.0, 1.75, -3.2);
+lampLight
+scene.add(lampLight);
+
+const tvLight = new THREE.PointLight(0xff5500, 1.8, 10);
+tvLight.position.set(0, 0.8, -3.2);
+scene.add(tvLight);
+
+const fillLight = new THREE.DirectionalLight(0x14182a, 0.3);
+fillLight.position.set(0, 5, 2);
+scene.add(fillLight);
+
+// ── Lamp state ───────────────────────────────────────────
+// Left side fill light — off by default
+// Room fill lights — off by default, cover all corners
+// Single hemisphere fill — replaces 4 point lights, much cheaper
+const hemiLight = new THREE.HemisphereLight(0xd4924a, 0x1a0e04, 0);
+scene.add(hemiLight);
+
+let lampOn = false;
+let lampTargetIntensity    = 6.0;
+let ambientTargetIntensity = 2.2;
+let hemiTarget = 0;
+
+function toggleLamp() {
+  lampOn = !lampOn;
+  if (lampOn) {
+    lampTargetIntensity    = 12.0;
+    ambientTargetIntensity = 3.5;
+    hemiTarget             = 1.8;
+    lampLight.distance     = 28;
+    lampShadeMat.emissiveIntensity = 0.0;
+    bulbMat.color.setHex(0xfff5e0);
+    bulbMat.emissive.setHex(0xffd070);
+    bulbMat.emissiveIntensity = 3.0;
+    bulbMat.needsUpdate = true;
+    document.getElementById('hint').classList.add('visible');
+    document.getElementById('tooltip-label').textContent = 'Turn off light';
+  } else {
+    lampTargetIntensity    = 6.0;
+    ambientTargetIntensity = 2.2;
+    hemiTarget             = 0;
+    bulbMat.color.setHex(0x222222);
+    bulbMat.emissive.setHex(0x111111);
+    bulbMat.emissiveIntensity = 0.0;
+    bulbMat.needsUpdate = true;
+    document.getElementById('tooltip-label').textContent = 'Turn on light';
+  }
+}
+
+// ── Interactable objects on table ────────────────────────
+const interactables = [];
+
+// --- LAPTOP ---
+const laptopGroup = new THREE.Group();
+laptopGroup.position.set(-0.28, 0.675, 0.52);
+
+// Base
+const laptopBase = new THREE.Mesh(
+  new THREE.BoxGeometry(0.5, 0.025, 0.34),
+  mat(0x1c1c1e, 0.3, 0.6)
+);
+laptopBase
+laptopGroup.add(laptopBase);
+
+// Screen (slightly open ~110deg)
+const screenPivot = new THREE.Group();
+screenPivot.position.set(0, 0.012, -0.17);
+laptopGroup.add(screenPivot);
+
+const laptopScreen = new THREE.Mesh(
+  new THREE.BoxGeometry(0.5, 0.32, 0.018),
+  mat(0x1a1a1c, 0.3, 0.6)
+);
+laptopScreen.position.set(0, 0.16, 0);
+screenPivot.add(laptopScreen);
+screenPivot.rotation.x = -0.42; // slightly open
+
+// Screen glow
+const screenGlow = new THREE.Mesh(
+  new THREE.PlaneGeometry(0.46, 0.29),
+  new THREE.MeshStandardMaterial({
+    color: 0x0d1a2e,
+    emissive: 0x0d2040,
+    emissiveIntensity: 1.2,
+    roughness: 0,
+  })
+);
+screenGlow.position.set(0, 0.16, 0.011);
+screenPivot.add(screenGlow);
+
+// Keyboard surface
+const keyboard = new THREE.Mesh(
+  new THREE.PlaneGeometry(0.44, 0.28),
+  mat(0x222224, 0.9)
+);
+keyboard.rotation.x = -Math.PI / 2;
+keyboard.position.set(0, 0.014, 0.03);
+laptopGroup.add(keyboard);
+
+scene.add(laptopGroup);
+interactables.push({
+  group: laptopGroup,
+  meshes: [laptopBase, laptopScreen, screenGlow, keyboard],
+  label: 'Portfolio',
+  href: null,
+  isPortfolio: true,
+  emissiveMeshes: [screenGlow],
+  baseEmissive: 0x0d2040,
+  hoverEmissive: 0x1a4080,
+});
+
+// --- BOOK ---
+const bookGroup = new THREE.Group();
+bookGroup.position.set(0.22, 0.675, 0.52);
+bookGroup.rotation.y = 0.15;
+
+const bookBody = new THREE.Mesh(
+  new THREE.BoxGeometry(0.22, 0.04, 0.3),
+  mat(0x3d1a0a, 0.9)
+);
+bookBody
+bookGroup.add(bookBody);
+
+// Book spine
+const spine = new THREE.Mesh(
+  new THREE.BoxGeometry(0.008, 0.042, 0.3),
+  mat(0x2a1206, 0.9)
+);
+spine.position.set(-0.114, 0, 0);
+bookGroup.add(spine);
+
+// Book pages edge
+const pages = new THREE.Mesh(
+  new THREE.BoxGeometry(0.21, 0.03, 0.29),
+  mat(0x2a2318, 0.95)
+);
+pages.position.set(0.005, 0, 0);
+bookGroup.add(pages);
+
+// Cover lines (decorative)
+const coverLine = new THREE.Mesh(
+  new THREE.BoxGeometry(0.16, 0.002, 0.004),
+  mat(0x5a2a10, 0.8)
+);
+coverLine.position.set(0.01, 0.021, -0.04);
+bookGroup.add(coverLine);
+
+const coverLine2 = new THREE.Mesh(
+  new THREE.BoxGeometry(0.12, 0.002, 0.004),
+  mat(0x5a2a10, 0.8)
+);
+coverLine2.position.set(0.01, 0.021, 0.0);
+bookGroup.add(coverLine2);
+
+scene.add(bookGroup);
+interactables.push({
+  group: bookGroup,
+  meshes: [bookBody, spine, pages],
+  label: 'Writing',
+  href: null,
+  isBlog: true,
+  emissiveMeshes: [],
+  baseEmissive: null,
+  hoverEmissive: null,
+});
+
+// --- BUSINESS CARD ---
+const cardGroup = new THREE.Group();
+cardGroup.position.set(0.22, 0.715, 0.52);
+cardGroup.rotation.y = -0.3;
+
+const card = new THREE.Mesh(
+  new THREE.BoxGeometry(0.2, 0.004, 0.115),
+  new THREE.MeshStandardMaterial({
+    color: 0x0d0d0d,
+    roughness: 0.2,
+    metalness: 0.5,
+    emissive: 0x050505,
+    emissiveIntensity: 0,
+  })
+);
+card
+cardGroup.add(card);
+
+// Card text line hints
+const cardLine1 = new THREE.Mesh(
+  new THREE.BoxGeometry(0.12, 0.001, 0.006),
+  mat(0x2a2a2a, 0.5, 0.3)
+);
+cardLine1.position.set(0, 0.003, -0.02);
+cardGroup.add(cardLine1);
+
+const cardLine2 = new THREE.Mesh(
+  new THREE.BoxGeometry(0.08, 0.001, 0.004),
+  mat(0x222222, 0.5, 0.3)
+);
+cardLine2.position.set(-0.02, 0.003, 0.01);
+cardGroup.add(cardLine2);
+
+const cardLine3 = new THREE.Mesh(
+  new THREE.BoxGeometry(0.06, 0.001, 0.004),
+  mat(0x1e1e1e, 0.5, 0.3)
+);
+cardLine3.position.set(-0.04, 0.003, 0.03);
+cardGroup.add(cardLine3);
+
+scene.add(cardGroup);
+interactables.push({
+  group: cardGroup,
+  meshes: [card, cardLine1, cardLine2, cardLine3],
+  label: 'Contact',
+  href: null,
+  isCard: true,
+  emissiveMeshes: [card],
+  baseEmissive: 0x050505,
+  hoverEmissive: 0x151515,
+});
+
+// ── Coffee mug on table ───────────────────────────────────
+const mugGroup = new THREE.Group();
+mugGroup.position.set(0.55, 0.675, 0.72);
+mugGroup.rotation.y = 0.3;
+
+// Mug body
+const mugBody = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.058, 0.048, 0.16, 14),
+  mat(0xf0ece4, 0.8)
+);
+mugGroup.add(mugBody);
+
+// Inside — recessed well below the rim to avoid z-fighting
+const mugInside = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.050, 0.050, 0.008, 14),
+  mat(0x2a1206, 0.9)
+);
+mugInside.position.y = 0.068;
+mugGroup.add(mugInside);
+
+const handleOuter = new THREE.Mesh(
+  new THREE.TorusGeometry(0.034, 0.009, 6, 10, Math.PI),
+  mat(0xf0ece4, 0.8)
+);
+handleOuter.rotation.y = Math.PI / 2;
+handleOuter.rotation.z = Math.PI / 2;
+handleOuter.position.set(0.066, 0.01, 0);
+mugGroup.add(handleOuter);
+
+scene.add(mugGroup);
+
+// ── Floor plant — far left corner ────────────────────────
+const plantGroup = new THREE.Group();
+plantGroup.position.set(-4.8, 0, -3.0);
+
+// Pot base
+const plantPot = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.2, 0.15, 0.38, 12),
+  mat(0x8a3a1e, 0.85)
+);
+plantPot.position.y = 0.19;
+plantGroup.add(plantPot);
+
+// Pot rim
+const potRim = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.22, 0.2, 0.04, 12),
+  mat(0x7a3018, 0.85)
+);
+potRim.position.y = 0.36;
+plantGroup.add(potRim);
+
+// Soil
+const potSoilFP = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.19, 0.19, 0.02, 12),
+  mat(0x1a0e06, 0.95)
+);
+potSoilFP.position.y = 0.375;
+plantGroup.add(potSoilFP);
+
+// Plant stems — tall monstera-style leaves
+const stemMat = mat(0x2d5a1e, 0.85);
+const leafMat = mat(0x3a7228, 0.8);
+const darkLeafMat = mat(0x254d18, 0.85);
+
+const leafData = [
+  { x: 0,     y: 0.85, z: 0,    sx: 0.18, sy: 0.26, sz: 0.04, ry: 0.0  },
+  { x: 0.18,  y: 0.72, z: 0.05, sx: 0.16, sy: 0.22, sz: 0.04, ry: 0.4  },
+  { x: -0.16, y: 0.78, z: 0.06, sx: 0.15, sy: 0.24, sz: 0.04, ry: -0.5 },
+  { x: 0.08,  y: 1.05, z:-0.05, sx: 0.14, sy: 0.28, sz: 0.04, ry: 0.2  },
+  { x:-0.1,   y: 0.95, z:-0.04, sx: 0.13, sy: 0.20, sz: 0.04, ry: -0.3 },
+  { x: 0.22,  y: 1.0,  z: 0.1,  sx: 0.12, sy: 0.22, sz: 0.04, ry: 0.6  },
+];
+
+leafData.forEach((l, i) => {
+  // Stem
+  const stem = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.012, 0.014, l.y - 0.38, 6),
+    stemMat
+  );
+  stem.position.set(l.x * 0.5, 0.38 + (l.y - 0.38) / 2, l.z * 0.5);
+  plantGroup.add(stem);
+
+  // Leaf
+  const leaf = new THREE.Mesh(
+    new THREE.SphereGeometry(1, 6, 5),
+    i % 2 === 0 ? leafMat : darkLeafMat
+  );
+  leaf.scale.set(l.sx, l.sy, l.sz);
+  leaf.position.set(l.x, l.y, l.z);
+  leaf.rotation.y = l.ry;
+  plantGroup.add(leaf);
+});
+
+scene.add(plantGroup);
+
+// ── Lamp interactable ─────────────────────────────────────
+const lampInteractable = {
+  group: null,
+  meshes: [lampShade, bulb, lampBase, lampPole],
+  label: 'Turn on light',
+  href: null,
+  isLamp: true,
+  emissiveMeshes: [],
+  baseEmissive: null,
+  hoverEmissive: null,
+};
+interactables.push(lampInteractable);
+const raycaster = new THREE.Raycaster();
+let hoveredObject = null;
+const tooltipEl = document.getElementById('tooltip');
+const tooltipLabel = document.getElementById('tooltip-label');
+
+function getInteractable(mesh) {
+  return interactables.find(obj => obj.meshes.includes(mesh));
+}
+
+function setHover(obj) {
+  if (obj === hoveredObject) return;
+
+  if (hoveredObject) {
+    if (hoveredObject.emissiveMeshes && hoveredObject.baseEmissive !== null) {
+      hoveredObject.emissiveMeshes.forEach(m => {
+        if (m && m.material) {
+          m.material.emissive.setHex(hoveredObject.baseEmissive);
+          m.material.emissiveIntensity = m === screenGlow ? 1.2 : 0;
+        }
+      });
+    }
+    if (hoveredObject.group && hoveredObject.group.scale) {
+      hoveredObject.group.scale.set(1, 1, 1);
+    }
+  }
+
+  hoveredObject = obj;
+
+  if (obj) {
+    if (obj.emissiveMeshes && obj.hoverEmissive !== null) {
+      obj.emissiveMeshes.forEach(m => {
+        if (m && m.material) {
+          m.material.emissive.setHex(obj.hoverEmissive);
+          m.material.emissiveIntensity = m === screenGlow ? 2.0 : 0.4;
+        }
+      });
+    }
+    if (obj.group && obj.group.scale) {
+      obj.group.scale.set(1.025, 1.025, 1.025);
+    }
+    tooltipLabel.textContent = obj.label;
+    tooltipEl.classList.add('visible');
+    cursorEl.classList.add('hover');
+  } else {
+    tooltipEl.classList.remove('visible');
+    cursorEl.classList.remove('hover');
+  }
+}
+
+// ── Click handler ────────────────────────────────────────
+document.addEventListener('click', () => {
+  if (!hoveredObject) return;
+
+  if (hoveredObject.isLamp) {
+    toggleLamp();
+    tooltipEl.classList.remove('visible');
+    return;
+  }
+
+  if (hoveredObject.isCard)      { openCard();                        return; }
+  if (hoveredObject.isPortfolio) { openOverlay('portfolio-overlay'); return; }
+  if (hoveredObject.isBlog)      { openOverlay('blog-overlay');      return; }
+
+  const dest = hoveredObject.href;
+  if (!dest) return;
+  const fade = document.getElementById('fade');
+  fade.classList.remove('in');
+  fade.style.transition = 'opacity 1s ease';
+  fade.style.opacity = '1';
+  setTimeout(() => {
+    window.location.href = dest;
+  }, 1100);
+});
+
+// ── Mouse look ───────────────────────────────────────────
+const maxYaw   =  0.75;
+const maxPitch =  0.25;
+
+// ── Animation ────────────────────────────────────────────
+const clock = new THREE.Clock();
+let entered = false;
+
+function animate() {
+  requestAnimationFrame(animate);
+  const elapsed = clock.getElapsedTime();
+
+  // Raycast
+  raycaster.setFromCamera(mouse, camera);
+  const allMeshes = interactables.flatMap(o => o.meshes);
+  const hits = raycaster.intersectObjects(allMeshes);
+  setHover(hits.length ? getInteractable(hits[0].object) : null);
+
+  // Camera look based on mouse position
+  const targetYaw   =  mouse.x * maxYaw;
+  const targetPitch =  mouse.y * maxPitch * 0.5;
+
+  lookTarget.x = Math.sin(targetYaw) * 5;
+  lookTarget.y = 1.1 + targetPitch * 2;
+  lookTarget.z = -Math.cos(targetYaw) * 5 + camera.position.z - 5;
+
+  lookCurrent.lerp(lookTarget, 0.04);
+  camera.lookAt(lookCurrent);
+
+  // Smooth lamp light transition
+  lampLight.intensity  += (lampTargetIntensity    - lampLight.intensity)  * 0.03;
+  ambient.intensity    += (ambientTargetIntensity - ambient.intensity)    * 0.03;
+  hemiLight.intensity  += (hemiTarget             - hemiLight.intensity)  * 0.03;
+
+  // Canvas textures — throttled to every 5th frame
+  if (Math.round(elapsed * 60) % 5 === 0) {
+    updateRainCanvas();
+    updateFireCanvas();
+  }
+
+  const flicker = Math.sin(elapsed * 7.3) * 0.3 + Math.sin(elapsed * 13.1) * 0.15 + Math.sin(elapsed * 3.7) * 0.2;
+  tvLight.intensity = 1.8 + flicker;
+
+  // Lamp shade pulse when off (hint to click)
+  if (!lampOn) {
+    lampShadeMat.emissiveIntensity = 0.12 + Math.sin(elapsed * 1.8) * 0.06;
+  } else {
+    // Flicker when on
+    lampLight.intensity = lampTargetIntensity + Math.sin(elapsed * 2.1) * 0.08 + Math.sin(elapsed * 5.3) * 0.04;
+  }
+
+  renderer.render(scene, camera);
+}
+
+animate();
+
+// ── Fade in on load ──────────────────────────────────────
+// ── Full screen overlays ──────────────────────────────────
+function openOverlay(id) {
+  document.getElementById(id).classList.add('active');
+}
+
+function closeOverlay(id) {
+  document.getElementById(id).classList.remove('active');
+}
+
+function handleFsClick(e, id) {
+  if (e.target === document.getElementById(id)) closeOverlay(id);
+}
+
+// ── Contact card flip ─────────────────────────────────────
+function openCard() {
+  const overlay = document.getElementById('card-overlay');
+  const inner   = document.getElementById('card-inner');
+  overlay.classList.add('active');
+  // Slight delay before flip so the zoom-in plays first
+  setTimeout(() => inner.classList.add('flipped'), 400);
+}
+
+function closeCard() {
+  const overlay = document.getElementById('card-overlay');
+  const inner   = document.getElementById('card-inner');
+  inner.classList.remove('flipped');
+  setTimeout(() => overlay.classList.remove('active'), 500);
+}
+
+function handleCardOverlayClick(e) {
+  // Close if clicking the backdrop, not the card itself
+  if (e.target === document.getElementById('card-overlay')) closeCard();
+}
+
+// ── Music player ─────────────────────────────────────────
+const bgMusic   = document.getElementById('bg-music');
+const playerEl  = document.getElementById('music-player');
+const vinylEl   = document.getElementById('vinyl');
+const statusEl  = document.getElementById('player-status');
+const iconSound = document.getElementById('icon-sound');
+const iconMuted = document.getElementById('icon-muted');
+let musicStarted = false;
+let isMuted = false;
+
+bgMusic.volume = 0;
+
+function startMusic() {
+  if (musicStarted) return;
+  musicStarted = true;
+  bgMusic.play().then(() => {
+    // Fade volume in over 4 seconds
+    let vol = 0;
+    const fadeIn = setInterval(() => {
+      vol = Math.min(vol + 0.01, 0.35);
+      bgMusic.volume = vol;
+      if (vol >= 0.35) clearInterval(fadeIn);
+    }, 120);
+  }).catch(() => {
+    // Autoplay blocked — wait for first interaction
+    document.addEventListener('click', () => {
+      if (!musicStarted) return;
+      bgMusic.play().then(() => {
+        let vol = 0;
+        const fadeIn = setInterval(() => {
+          vol = Math.min(vol + 0.01, 0.35);
+          bgMusic.volume = vol;
+          if (vol >= 0.35) clearInterval(fadeIn);
+        }, 120);
+      });
+    }, { once: true });
+  });
+}
+
+function toggleMusic() {
+  if (!musicStarted) startMusic();
+  isMuted = !isMuted;
+  bgMusic.muted = isMuted;
+  playerEl.classList.toggle('muted', isMuted);
+  vinylEl.style.animationPlayState = isMuted ? 'paused' : 'running';
+  statusEl.textContent = isMuted ? 'Muted' : 'Playing';
+  iconSound.style.display = isMuted ? 'none' : 'block';
+  iconMuted.style.display = isMuted ? 'block' : 'none';
+}
+
+// Auto-start music when page loads
+window.addEventListener('load', () => {
+  // Safari/Mac fix: force canvas resize and an initial render frame on load.
+  // Without this, navigating from index.html can leave the WebGL canvas black.
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.render(scene, camera);
+
+  // Fade in room — setTimeout is more reliable than double-rAF on Safari
+  const fade = document.getElementById('fade');
+  setTimeout(() => {
+    fade.style.transition = 'opacity 1.8s ease';
+    fa

@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="refresh" content="10;url=room.html">
+<title>Chris — Home</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Geist+Mono:wght@300;400&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #000;
+    overflow: hidden;
+    font-family: 'Cormorant Garamond', serif;
+    cursor: none;
+  }
+
+  #canvas-container {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+  }
+
+  canvas { display: block; }
+
+  /* Lightning flash overlay */
+  #lightning {
+    position: fixed;
+    inset: 0;
+    background: #fff;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Vignette */
+  #vignette {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.85) 100%);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  /* Name reveal */
+  #identity {
+    position: fixed;
+    bottom: 15%;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 2s ease;
+  }
+
+  #identity.visible { opacity: 1; }
+
+  #name {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: clamp(2.5rem, 6vw, 5rem);
+    color: #f0ece4;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+
+  #tagline {
+    font-family: 'Geist Mono', monospace;
+    font-weight: 300;
+    font-size: clamp(0.6rem, 1vw, 0.75rem);
+    color: rgba(240, 236, 228, 0.45);
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    margin-top: 1rem;
+  }
+
+  /* Enter prompt */
+  #enter {
+    position: fixed;
+    bottom: 7%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 1.5s ease;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    display: block;
+  }
+
+  #enter.visible { opacity: 1; }
+
+  #enter span {
+    font-family: 'Geist Mono', monospace;
+    font-weight: 300;
+    font-size: 0.65rem;
+    color: rgba(240, 236, 228, 0.35);
+    letter-spacing: 0.5em;
+    text-transform: uppercase;
+    display: block;
+    animation: pulse 3s ease-in-out infinite;
+  }
+
+  #enter-arrow {
+    display: block;
+    margin: 0.6rem auto 0;
+    width: 1px;
+    height: 0px;
+    background: rgba(240, 236, 228, 0.25);
+    transition: height 1.5s ease 0.5s;
+  }
+
+  #enter.visible #enter-arrow { height: 32px; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 0.65; }
+  }
+
+  /* Fade to black overlay */
+  #fade {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 100;
+    transition: opacity 1.2s ease;
+  }
+
+  #fade.out { opacity: 1; pointer-events: all; }
+
+  /* Custom cursor */
+  #cursor {
+    position: fixed;
+    width: 6px;
+    height: 6px;
+    background: rgba(240, 236, 228, 0.7);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 999;
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s ease, width 0.2s ease, height 0.2s ease;
+  }
+</style>
+</head>
+<body>
+
+<div id="canvas-container"></div>
+<div id="lightning"></div>
+<div id="vignette"></div>
+
+<div id="identity">
+  <div id="name">Chris</div>
+  <div id="tagline">Engineer &nbsp;·&nbsp; Data Scientist &nbsp;·&nbsp; Business Tech</div>
+</div>
+
+<a id="enter" href="room.html" onclick="enterSite(event)">
+  <span>Skip intro</span>
+  <i id="enter-arrow"></i>
+</a>
+<a id="safari-fallback" href="room.html" style="display:none"></a>
+
+<div id="fade"></div>
+<div id="cursor"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ── Cursor ──────────────────────────────────────────────
+const cursor = document.getElementById('cursor');
+document.addEventListener('mousemove', e => {
+  cursor.style.left = e.clientX + 'px';
+  cursor.style.top  = e.clientY + 'px';
+});
+
+// ── Scene setup ─────────────────────────────────────────
+const container = document.getElementById('canvas-container');
+const W = window.innerWidth, H = window.innerHeight;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(W, H);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+container.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x05080f, 0.018);
+
+const camera = new THREE.PerspectiveCamera(75, W / H, 0.1, 200);
+camera.position.set(0, 0, 30);
+
+// ── Background colour ───────────────────────────────────
+renderer.setClearColor(0x05080f, 1);
+
+// ── Ambient light ───────────────────────────────────────
+const ambient = new THREE.AmbientLight(0x1a2a4a, 1.2);
+scene.add(ambient);
+
+const bluePoint = new THREE.PointLight(0x2244aa, 1.5, 80);
+bluePoint.position.set(-10, 20, 10);
+scene.add(bluePoint);
+
+// ── Rain ────────────────────────────────────────────────
+const RAIN_COUNT = 8000;
+const rainGeo = new THREE.BufferGeometry();
+const positions = new Float32Array(RAIN_COUNT * 3);
+const velocities = new Float32Array(RAIN_COUNT);
+
+for (let i = 0; i < RAIN_COUNT; i++) {
+  positions[i * 3]     = (Math.random() - 0.5) * 120;
+  positions[i * 3 + 1] = (Math.random() - 0.5) * 100 + 20;
+  positions[i * 3 + 2] = (Math.random() - 0.5) * 80;
+  velocities[i] = 0.3 + Math.random() * 0.5;
+}
+
+rainGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+const rainMat = new THREE.PointsMaterial({
+  color: 0x99bbdd,
+  size: 0.08,
+  transparent: true,
+  opacity: 0.55,
+  sizeAttenuation: true,
+});
+
+const rain = new THREE.Points(rainGeo, rainMat);
+scene.add(rain);
+
+// ── Rain streaks (lines) ────────────────────────────────
+const STREAK_COUNT = 1200;
+const streakPositions = new Float32Array(STREAK_COUNT * 6);
+
+for (let i = 0; i < STREAK_COUNT; i++) {
+  const x = (Math.random() - 0.5) * 120;
+  const y = (Math.random() - 0.5) * 100 + 20;
+  const z = (Math.random() - 0.5) * 80;
+  const len = 0.4 + Math.random() * 0.6;
+  streakPositions[i * 6]     = x;
+  streakPositions[i * 6 + 1] = y;
+  streakPositions[i * 6 + 2] = z;
+  streakPositions[i * 6 + 3] = x - 0.05;
+  streakPositions[i * 6 + 4] = y - len;
+  streakPositions[i * 6 + 5] = z;
+}
+
+const streakGeo = new THREE.BufferGeometry();
+streakGeo.setAttribute('position', new THREE.BufferAttribute(streakPositions, 3));
+
+const streakMat = new THREE.LineBasicMaterial({
+  color: 0x7799cc,
+  transparent: true,
+  opacity: 0.18,
+});
+
+const streaks = new THREE.LineSegments(streakGeo, streakMat);
+scene.add(streaks);
+
+// ── Distant ground plane ────────────────────────────────
+const groundGeo = new THREE.PlaneGeometry(200, 200);
+const groundMat = new THREE.MeshStandardMaterial({
+  color: 0x080c14,
+  roughness: 0.1,
+  metalness: 0.4,
+});
+const ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = -22;
+scene.add(ground);
+
+// Wet ground reflection light
+const groundLight = new THREE.PointLight(0x334488, 0.8, 40);
+groundLight.position.set(0, -18, 5);
+scene.add(groundLight);
+
+// ── Lightning ────────────────────────────────────────────
+const lightningEl = document.getElementById('lightning');
+let lightningTimer = 0;
+let nextLightning = 3000 + Math.random() * 4000;
+
+function triggerLightning() {
+  const flashLight = new THREE.PointLight(0xaabbff, 8, 150);
+  flashLight.position.set(
+    (Math.random() - 0.5) * 60,
+    30 + Math.random() * 20,
+    (Math.random() - 0.5) * 30
+  );
+  scene.add(flashLight);
+
+  lightningEl.style.opacity = '0.06';
+  setTimeout(() => { lightningEl.style.opacity = '0'; }, 60);
+  setTimeout(() => {
+    lightningEl.style.opacity = '0.04';
+    setTimeout(() => { lightningEl.style.opacity = '0'; }, 40);
+  }, 120);
+
+  setTimeout(() => { scene.remove(flashLight); }, 200);
+  nextLightning = 3000 + Math.random() * 6000;
+}
+
+// ── Identity reveal timing ───────────────────────────────
+setTimeout(() => {
+  document.getElementById('identity').classList.add('visible');
+}, 2800);
+
+setTimeout(() => {
+  document.getElementById('enter').classList.add('visible');
+}, 5000);
+
+// ── Auto-transition after cinematic ──────────────────────
+let entered = false;
+setTimeout(() => {
+  if (!entered) enterSite();
+}, 9000);
+
+// ── Enter transition ─────────────────────────────────────
+function enterSite(e) {
+  if (entered) return;
+  entered = true;
+  // Cancel the meta refresh since user clicked manually
+  const metaRefresh = document.querySelector('meta[http-equiv="refresh"]');
+  if (metaRefresh) metaRefresh.remove();
+  // Fade to black — anchor href handles the actual navigation
+  const fade = document.getElementById('fade');
+  fade.classList.add('out');
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ' ') {
+    document.getElementById('safari-fallback').click();
+  }
+});
+
+// ── Animation loop ───────────────────────────────────────
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const delta = clock.getDelta();
+  const elapsed = clock.getElapsedTime();
+
+  // Rain fall
+  const pos = rainGeo.attributes.position.array;
+  for (let i = 0; i < RAIN_COUNT; i++) {
+    pos[i * 3 + 1] -= velocities[i];
+    if (pos[i * 3 + 1] < -30) {
+      pos[i * 3 + 1] = 50;
+      pos[i * 3]     = (Math.random() - 0.5) * 120;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 80;
+    }
+  }
+  rainGeo.attributes.position.needsUpdate = true;
+
+  // Streak fall
+  const sp = streakGeo.attributes.position.array;
+  for (let i = 0; i < STREAK_COUNT; i++) {
+    sp[i * 6 + 1] -= 0.45;
+    sp[i * 6 + 4] -= 0.45;
+    if (sp[i * 6 + 1] < -30) {
+      const nx = (Math.random() - 0.5) * 120;
+      const ny = 50 + Math.random() * 20;
+      const nz = (Math.random() - 0.5) * 80;
+      const nl = 0.4 + Math.random() * 0.6;
+      sp[i * 6]     = nx;
+      sp[i * 6 + 1] = ny;
+      sp[i * 6 + 2] = nz;
+      sp[i * 6 + 3] = nx - 0.05;
+      sp[i * 6 + 4] = ny - nl;
+      sp[i * 6 + 5] = nz;
+    }
+  }
+  streakGeo.attributes.position.needsUpdate = true;
+
+  // Subtle camera drift
+  camera.position.x = Math.sin(elapsed * 0.08) * 0.4;
+  camera.position.y = Math.sin(elapsed * 0.05) * 0.2;
+  camera.lookAt(0, 0, 0);
+
+  // Blue point light pulse
+  bluePoint.intensity = 1.2 + Math.sin(elapsed * 0.6) * 0.3;
+
+  // Lightning timer
+  lightningTimer += delta * 1000;
+  if (lightningTimer > nextLightning) {
+    lightningTimer = 0;
+    triggerLightning();
+  }
+
+  renderer.render(scene, camera);
+}
+
+animate();
+
+// ── Resize ───────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  const w = window.innerWidth, h = window.innerHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+});
+</script>
+</body>
+</html>
